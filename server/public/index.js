@@ -2,23 +2,19 @@
 
 console.log("creating client");
 const client = new Colyseus.Client("ws://localhost:3000");
-const lobby = await client.joinOrCreate("game", {});
+const room = await client.joinOrCreate("game");
 
-let allRooms = [];
+const counter = document.getElementById("counter");
+const button = document.getElementById("button");
 
-lobby.onMessage("rooms", (rooms) => {
-  allRooms = rooms;
+room.state.listen("counter", (currentValue, previousValue) => {
+  console.log(`currentTurn is now ${currentValue}`);
+  console.log(`previous value was: ${previousValue}`);
+  counter.textContent = currentValue;
 });
 
-lobby.onMessage("+", ([roomId, room]) => {
-  const roomIndex = allRooms.findIndex((room) => room.roomId === roomId);
-  if (roomIndex !== -1) {
-    allRooms[roomIndex] = room;
-  } else {
-    allRooms.push(room);
-  }
-});
-
-lobby.onMessage("-", (roomId) => {
-  allRooms = allRooms.filter((room) => room.roomId !== roomId);
+button.addEventListener("click", (e) => {
+  var x = room.state.counter;
+  console.log("the number is " + x + " before send");
+  room.send("increment");
 });
