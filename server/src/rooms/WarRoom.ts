@@ -1,16 +1,15 @@
 import { Room, Client } from "@colyseus/core";
-import { MyRoomState } from "./schema/MyRoomState";
+import { Board } from "./schema/Board";
 
-export class MyRoom extends Room<MyRoomState> {
+export class WarRoom extends Room<Board> {
   maxClients = 4;
 
   onCreate(options: any) {
-    this.setState(new MyRoomState());
+    this.setState(new Board());
     console.log("set state");
 
     this.onMessage("increment", (client, message) => {
       console.log("got message:", message);
-      this.state.counter += 1;
     });
   }
 

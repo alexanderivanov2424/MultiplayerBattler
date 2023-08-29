@@ -23,7 +23,7 @@ import { playground } from "@colyseus/playground";
 import { createServer } from "http";
 import express from "express";
 
-import { MyRoom } from "./rooms/MyRoom";
+import { WarRoom } from "./rooms/WarRoom";
 
 const port = Number(process.env.port) || 3000;
 
@@ -36,7 +36,7 @@ const gameServer = new Server({
   server: createServer(app),
 });
 
-gameServer.define("game", MyRoom);
+gameServer.define("game", WarRoom);
 
 app.use(express.static("public"));
 

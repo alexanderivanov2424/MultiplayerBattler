@@ -1,7 +1,33 @@
-<body>
-  <h1>HELLO THERE</h1>
-  <h2 id="counter"></h2>
-  <button id="button">GROW</button>
-  <script src="https://unpkg.com/colyseus.js@^0.15.0/dist/colyseus.js"></script>
-  <script type="module" src="./index.js"></script>
-</body>
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>HexGrid</title>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+      }
+
+      .test {
+        display: flex;
+        justify-content: space-between;
+      }
+
+      .canvas {
+        border: 1px solid #000000;
+      }
+
+      html,
+      body {
+        overflow: hidden;
+      }
+    </style>
+    <script src="https://unpkg.com/colyseus.js@^0.15.0/dist/colyseus.js"></script>
+    <script type="module" src="./index.js"></script>
+  </head>
+
+  <body>
+    <canvas id="canvas" width="1000" height="800" class="canvas"></canvas>
+  </body>
+</html>
