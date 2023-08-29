@@ -8,13 +8,6 @@
  *
  * See: https://docs.colyseus.io/server/api/#constructor-options
  */
-// // import { listen } from "@colyseus/tools";
-
-// // Import Colyseus config
-// import app from "./app.config";
-
-// // Create and listen on 2567 (or PORT environment variable.)
-// listen(app);
 
 // Colyseus + Express
 import { Server } from "colyseus";
@@ -39,10 +32,6 @@ const gameServer = new Server({
 gameServer.define("game", WarRoom);
 
 app.use(express.static("public"));
-
-// app.get("/hello_world", (req, res) => {
-//   res.send("It's time to kick ass and chew bubblegum!");
-// });
 
 gameServer.listen(port);
 console.log(`Listening on ws://localhost:${port}`);

@@ -10,16 +10,27 @@ room.state.listen("tiles", (currentValue, previousValue) => {
 const canvas = document.getElementById("canvas");
 const ctx = canvas.getContext("2d");
 
-canvas.width = window.innerWidth;
-canvas.height = window.innerHeight;
-drawHexagon(0, 0, "#000000", "#ff00ff");
-drawHexagon(100, 50, "#000000", "#ff0000");
-window.addEventListener("resize", (event) => {
-  canvas.width = window.innerWidth;
-  canvas.height = window.innerHeight;
-  drawHexagon(0, 0, "#000000", "#ff00ff");
-  drawHexagon(100, 50, "#000000", "#ff0000");
+const zoomInButton = document.getElementById("zoom-in");
+const zoomOutButton = document.getElementById("zoom-out");
+const resetButton = document.getElementById("reset");
+const rangeInput = document.getElementById("range");
+
+const panzoom = Panzoom(canvas, { canvas: true, contain: "inside" });
+zoomInButton.addEventListener("click", panzoom.zoomIn);
+zoomOutButton.addEventListener("click", panzoom.zoomOut);
+resetButton.addEventListener("click", panzoom.reset);
+rangeInput.addEventListener("input", (event) => {
+  panzoom.zoom(event.target.valueAsNumber);
 });
+
+//canvas.width = window.innerWidth;
+//canvas.height = window.innerHeight;
+//window.addEventListener("resize", (event) => {
+//  canvas.width = window.innerWidth;
+//  canvas.height = window.innerHeight;
+//  drawHexagon(0, 0, "#000000", "#ff00ff");
+//  drawHexagon(100, 50, "#000000", "#ff0000");
+//});
 
 const TILE_SIZE = 50; // distance from hexagon center to vertices
 
@@ -53,6 +64,9 @@ function drawHexagon(x, y, borderColor, fillColor) {
   ctx.fillStyle = fillColor;
   ctx.fill();
 }
+
+drawHexagon(0, 0, "#000000", "#ff00ff");
+drawHexagon(100, 50, "#000000", "#ff0000");
 
 let moved;
 let downListener = (event) => {
