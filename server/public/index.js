@@ -1,7 +1,3 @@
-console.log("creating client");
-const client = new Colyseus.Client("ws://localhost:3000");
-const room = await client.joinOrCreate("game");
-
 const MAP_SIZE_X = 2000;
 const MAP_SIZE_Y = 2000;
 
@@ -23,19 +19,24 @@ for (let i = 0; i < EDGES; i++) {
   ]);
 }
 
-room.state.listen("tiles", (currentValue, previousValue) => {
-  //console.log(`currentTurn is now ${currentValue}`);
-  //console.log(`previous value was: ${previousValue}`);
-  render();
-});
-
 const canvas = document.getElementById("canvas");
 const ctx = canvas.getContext("2d");
 
-canvas.width = MAP_SIZE_X;
-canvas.height = MAP_SIZE_Y;
+canvas.style.width = `${MAP_SIZE_X}px`;
+canvas.style.height = `${MAP_SIZE_Y}px`;
 
-const panzoom = Panzoom(canvas, { canvas: true }); // contain: "outside"
+const scale = 4 * window.devicePixelRatio;
+canvas.width = Math.floor(MAP_SIZE_X * scale);
+canvas.height = Math.floor(MAP_SIZE_Y * scale);
+ctx.scale(scale, scale);
+
+const panzoom = Panzoom(canvas, {
+  canvas: true,
+  minScale: 0.5,
+  maxScale: 2,
+  startX: (window.innerWidth - MAP_SIZE_X) / 2,
+  startY: (window.innerHeight - MAP_SIZE_Y) / 2,
+});
 canvas.parentElement.addEventListener("wheel", panzoom.zoomWithWheel);
 canvas.addEventListener("click", canvasClicked);
 
@@ -99,7 +100,7 @@ function axialRound([q, r]) {
   }
   // in cube version also calc s_i
 
-  return [q_i, r_i];
+  return [0 + q_i, 0 + r_i];
 }
 
 function canvasClicked(event) {
@@ -113,7 +114,17 @@ function canvasClicked(event) {
   console.log(q, r);
 }
 
+console.log("creating client");
+const client = new Colyseus.Client("ws://localhost:3000");
+const room = await client.joinOrCreate("game");
+
 render();
+
+room.state.listen("tiles", (currentValue, previousValue) => {
+  //console.log(`currentTurn is now ${currentValue}`);
+  //console.log(`previous value was: ${previousValue}`);
+  render();
+});
 
 /*
  - level generation (simple for now, just a rect)
