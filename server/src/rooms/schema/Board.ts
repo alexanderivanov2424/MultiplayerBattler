@@ -23,5 +23,8 @@ export class Board extends Schema {
     this.tiles.set("0,1", new Tile());
     this.tiles.set("1,0", new Tile());
     this.tiles.set("-1,2", new Tile());
+
+    this.tiles.set("6,4", new Tile());
+    this.tiles.set("4,-1", new Tile());
   }
 }
