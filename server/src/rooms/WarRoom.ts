@@ -8,8 +8,8 @@ export class WarRoom extends Room<Board> {
     this.setState(new Board());
     console.log("set state");
 
-    this.onMessage("increment", (client, message) => {
-      console.log("got message:", message);
+    this.onMessage("move", (client, [src, dest]) => {
+      this.state.moveUnit(src, dest);
     });
   }
 

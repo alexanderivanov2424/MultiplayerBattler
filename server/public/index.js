@@ -19,6 +19,33 @@ for (let i = 0; i < EDGES; i++) {
   ]);
 }
 
+const HEX_NEIGHBORS = [
+  [1, 0],
+  [-1, 0],
+  [0, 1],
+  [0, -1],
+  [1, -1],
+  [-1, 1],
+];
+
+const IMG_SOLDIER0 = document.getElementById("soldier0");
+const IMG_SOLDIER1 = document.getElementById("soldier1");
+const IMG_SOLDIER2 = document.getElementById("soldier2");
+
+const TextureMap = {
+  soldier0: IMG_SOLDIER0,
+  soldier1: IMG_SOLDIER1,
+  soldier2: IMG_SOLDIER2,
+};
+
+const TILE_COLOR = "#ff6060";
+const TILE_BORDER = "#000000";
+
+const TILE_COLOR_SHADDED = "#cc4040";
+const TILE_BORDER_SHADDED = "#000000";
+
+// ################################
+
 const canvas = document.getElementById("canvas");
 const ctx = canvas.getContext("2d");
 
@@ -40,6 +67,14 @@ const panzoom = Panzoom(canvas, {
 canvas.parentElement.addEventListener("wheel", panzoom.zoomWithWheel);
 canvas.addEventListener("click", canvasClicked);
 
+// ################################
+
+let isMovingUnit = false;
+let moveSource = [0, 0];
+let possibleMoveTiles = new Set();
+
+// ################################
+
 function drawHexagon(x, y, borderColor, fillColor) {
   ctx.beginPath();
   for (let i = 0; i < VERTICES.length; i++) {
@@ -50,6 +85,7 @@ function drawHexagon(x, y, borderColor, fillColor) {
   }
   ctx.closePath();
 
+  ctx.lineWidth = 3;
   ctx.strokeStyle = borderColor;
   ctx.stroke();
 
@@ -57,29 +93,51 @@ function drawHexagon(x, y, borderColor, fillColor) {
   ctx.fill();
 }
 
-function drawTileFromMap(tileCoord, tile) {
+function parseTileCoord(tileCoord) {
   let [q, r] = tileCoord.split(",");
-  // TODO check that q and r are ints
   q = Number(q);
   r = Number(r);
+  return [q, r];
+}
+
+function getPixelFromTileCoord([q, r]) {
   let x = HORIZONTAL_UNIT * q;
   let y = VERTICAL_UNIT * (q / 2 + r);
-  drawHexagon(x, y, "#000000", "#ff6060");
+  return [x, y];
+}
+
+function drawTileFromMap(tileCoord, tile) {
+  let [x, y] = getPixelFromTileCoord(parseTileCoord(tileCoord));
+  const [borderColor, fillColor] =
+    isMovingUnit && !possibleMoveTiles.has(tileCoord)
+      ? [TILE_BORDER_SHADDED, TILE_COLOR_SHADDED]
+      : [TILE_BORDER, TILE_COLOR];
+  drawHexagon(x, y, borderColor, fillColor);
+}
+
+function drawUnitFromMap(tileCoord, unit) {
+  let [x, y] = getPixelFromTileCoord(parseTileCoord(tileCoord));
+  let size = TILE_SIZE * 1.5;
+
+  let image = TextureMap[unit.unitName] || IMG_SOLDIER0;
+
+  ctx.drawImage(
+    image,
+    x - size / 2 + MAP_SHIFT_X,
+    y - size / 2 + MAP_SHIFT_Y,
+    size,
+    size
+  );
 }
 
 function render() {
-  console.log(room.state.tiles);
   for (const [tileCoord, tile] of room.state.tiles) {
     drawTileFromMap(tileCoord, tile);
   }
 
-  // drawHexagon(0, 0, "#000000", "#ff00ff");
-  // drawHexagon(100, 50, "#000000", "#ff0000");
-
-  // drawHexagon(300, 300, "#000000", "#ff0000");
-
-  // drawHexagon(900, 300, "#000000", "#ff0000");
-  // drawHexagon(300, 900, "#000000", "#ff0000");
+  for (const [unitCoord, unit] of room.state.units) {
+    drawUnitFromMap(unitCoord, unit);
+  }
 }
 
 function axialRound([q, r]) {
@@ -103,6 +161,43 @@ function axialRound([q, r]) {
   return [0 + q_i, 0 + r_i];
 }
 
+function updateMovementHighlight() {
+  possibleMoveTiles = new Set();
+
+  let neighbors = [];
+  let next_neighbors = [moveSource];
+  let distance = 5;
+
+  while (distance > 0) {
+    neighbors = next_neighbors;
+    next_neighbors = [];
+
+    for (let [q, r] of neighbors) {
+      possibleMoveTiles.add(q + "," + r);
+      for (let [shift_q, shift_r] of HEX_NEIGHBORS) {
+        let new_q = q + shift_q;
+        let new_r = r + shift_r;
+        if (possibleMoveTiles.has(new_q + "," + new_r)) {
+          continue;
+        }
+        if (!tileExists([new_q, new_r])) {
+          continue;
+        }
+        next_neighbors.push([new_q, new_r]);
+      }
+    }
+    distance--;
+  }
+}
+
+function getUnitInTile([q, r]) {
+  return room.state.units.get(q + "," + r);
+}
+
+function tileExists([q, r]) {
+  return room.state.tiles.get(q + "," + r);
+}
+
 function canvasClicked(event) {
   let x = event.offsetX - MAP_SHIFT_X;
   let y = event.offsetY - MAP_SHIFT_Y;
@@ -111,7 +206,21 @@ function canvasClicked(event) {
   let r = -x / (3.0 * TILE_SIZE) + y / VERTICAL_UNIT;
 
   [q, r] = axialRound([q, r]);
-  console.log(q, r);
+
+  let unit = getUnitInTile([q, r]);
+
+  if (unit && unit.movable && !isMovingUnit) {
+    isMovingUnit = true;
+    moveSource = [q, r];
+    updateMovementHighlight();
+    render();
+  } else if (isMovingUnit) {
+    isMovingUnit = false;
+    if (moveSource[0] != q || moveSource[1] != r) {
+      room.send("move", [moveSource, [q, r]]);
+    }
+    render();
+  }
 }
 
 console.log("creating client");
@@ -120,18 +229,31 @@ const room = await client.joinOrCreate("game");
 
 render();
 
-room.state.listen("tiles", (currentValue, previousValue) => {
-  //console.log(`currentTurn is now ${currentValue}`);
-  //console.log(`previous value was: ${previousValue}`);
+room.state.listen("generation", () => {
+  console.log("room.state changed", room.state);
   render();
 });
 
 /*
- - level generation (simple for now, just a rect)
- - click detection on tiles
- - units to draw on tiles (temp units for now)
+All image sources: https://github.com/yiotro/Antiyoy/tree/master/assets/field_elements
+
+- click on tower -> show shields (client side only)
+
+-Start mutliplayer features
+  - fake second player territory for tiles with different ownership
+  - move only your own units
+  - capture empty tiles are border
+
+- player HUD
+  - income, money, provinces
+  - purchase buttons
+
+- house keeping
+  - constants and helper functions in their own file.
+  - pull out rendering functions
 
 
+- multiple players generate UUIDs
 
 
 */
