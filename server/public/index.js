@@ -254,6 +254,4 @@ All image sources: https://github.com/yiotro/Antiyoy/tree/master/assets/field_el
 
 
 - multiple players generate UUIDs
-
-
 */
