@@ -208,7 +208,7 @@ function canvasClicked(event) {
 
   let unit = getUnitInTile([q, r]);
 
-  if (unit && unit.moveRange > 0 && !isMovingUnit) {
+  if (unit && unit.ownerId === thisPlayer.playerId && unit.moveRange > 0 && !isMovingUnit) {
     isMovingUnit = true;
     moveSource = [q, r];
 

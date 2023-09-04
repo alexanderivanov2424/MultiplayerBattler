@@ -32,7 +32,7 @@ export function getDistance(tiles, src, dest, max_distance) {
         if (checkedTiles.has(new_q + "," + new_r)) {
           continue;
         }
-        if (!tileExists(tiles, [new_q, new_r])) {
+        if (!tileExists(tiles, new_q + "," + new_r)) {
           continue;
         }
         if (new_q === dest[0] && new_r === dest[1]) {
@@ -46,8 +46,12 @@ export function getDistance(tiles, src, dest, max_distance) {
   return -1;
 }
 
-export function tileExists(tiles, [q, r]) {
-  return tiles.get(q + "," + r);
+export function captureTile(tiles, tileCoord, playerId) {
+  tiles.get(tileCoord).ownerId = playerId;
+}
+
+export function tileExists(tiles, tileCoord) {
+  return tiles.get(tileCoord);
 }
 
 export function getPossibleMoveTiles(tiles, moveSource, unit) {
@@ -72,7 +76,7 @@ export function getPossibleMoveTiles(tiles, moveSource, unit) {
         if (possibleMoveTiles.has(new_q + "," + new_r)) {
           continue;
         }
-        if (!tileExists(tiles, [new_q, new_r])) {
+        if (!tileExists(tiles, new_q + "," + new_r)) {
           continue;
         }
         next_neighbors.push([new_q, new_r]);

@@ -63,9 +63,10 @@ export class Board extends Schema {
       return;
     }
     this.players.get(id).readyToStart = true;
-    if (this.players.size < 2) {
-      return;
-    }
+    // if (this.players.size < 2) {
+    //   this.updateClients();
+    //   return;
+    // }
     if (this.allPlayersReady()) {
       this.startGame();
     }
@@ -85,15 +86,16 @@ export class Board extends Schema {
     this.gameStarted = true;
     // TODO assign players to colors / provinces
     // Generate map
-    this.players.forEach((id: string, player: Player) => {
+    this.players.forEach((player: Player, id: string) => {
       let randPos = "-6,-6";
-      while (!this.units.get(randPos)) {
-        let randIntX = Math.floor(Math.random() * 12) - 6;
-        let randIntY = Math.floor(Math.random() * 12) - 6;
+      while (!utils.tileExists(this.tiles, randPos) || this.units.get(randPos)) {
+        let randIntX = Math.floor(Math.random() * 12) - 5;
+        let randIntY = Math.floor(Math.random() * 12) - 5;
         randPos = randIntX + "," + randIntY;
+        console.log(randPos);
       }
       this.units.set(randPos, new Soldier(0, player));
-      this.tiles.get(randPos).ownerId = player.playerId;
+      utils.captureTile(this.tiles, randPos, player.playerId);
     });
     this.updateClients();
     //
@@ -142,7 +144,7 @@ export class Board extends Schema {
 
     this.units.delete(src_coord);
     this.units.set(dest_coord, unit);
-    this.tiles.get(dest_coord).ownerId = unit.ownerId;
+    utils.captureTile(this.tiles, dest_coord, unit.ownerId);
 
     this.updateClients();
   }
