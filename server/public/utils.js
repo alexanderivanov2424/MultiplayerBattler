@@ -50,12 +50,12 @@ export function tileExists(tiles, [q, r]) {
   return tiles.get(q + "," + r);
 }
 
-export function getPossibleMoveTiles(tiles, moveSource, moveRange) {
+export function getPossibleMoveTiles(tiles, moveSource, unit) {
   let possibleMoveTiles = new Set();
 
   let neighbors = [];
   let next_neighbors = [moveSource];
-  let distance = moveRange;
+  let distance = unit.moveRange;
 
   while (distance >= 0) {
     neighbors = next_neighbors;
@@ -63,6 +63,9 @@ export function getPossibleMoveTiles(tiles, moveSource, moveRange) {
 
     for (let [q, r] of neighbors) {
       possibleMoveTiles.add(q + "," + r);
+      if (tiles.get(q + "," + r).ownerId !== unit.ownerId) {
+        continue;
+      }
       for (let [shift_q, shift_r] of HEX_NEIGHBORS) {
         let new_q = q + shift_q;
         let new_r = r + shift_r;

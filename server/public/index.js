@@ -21,7 +21,8 @@ for (let i = 0; i < EDGES; i++) {
   ]);
 }
 
-const TILE_COLOR = "#ff6060";
+const TILE_COLOR_NEUTRAL = "#a0a0a0";
+const PLAYER_COLORS = ["#ff6060", "#6060ff", "#60ff60"];
 const TILE_BORDER = "#000000";
 
 const TILE_COLOR_SHADDED = "#cc4040";
@@ -68,6 +69,7 @@ canvas.addEventListener("click", canvasClicked);
 
 // ################################
 
+let thisPlayer = {};
 let isMovingUnit = false;
 let moveSource = [0, 0];
 let possibleMoveTiles = new Set();
@@ -107,10 +109,18 @@ function getPixelFromTileCoord([q, r]) {
 
 function drawTileFromMap(tileCoord, tile) {
   let [x, y] = getPixelFromTileCoord(parseTileCoord(tileCoord));
-  const [borderColor, fillColor] =
-    isMovingUnit && !possibleMoveTiles.has(tileCoord)
+  let borderColor = "";
+  let fillColor = "";
+  if (isMovingUnit) {
+    [borderColor, fillColor] = !possibleMoveTiles.has(tileCoord)
       ? [TILE_BORDER_SHADDED, TILE_COLOR_SHADDED]
-      : [TILE_BORDER, TILE_COLOR];
+      : [TILE_BORDER, PLAYER_COLORS[thisPlayer.playerNumber]];
+  } else {
+    borderColor = TILE_BORDER;
+    fillColor = (tile.ownerId === "none")
+      ? TILE_COLOR_NEUTRAL
+      : PLAYER_COLORS[room.state.players.get(tile.ownerId).playerNumber];
+  }
   drawHexagon(x, y, borderColor, fillColor);
 }
 
@@ -140,7 +150,7 @@ function renderCanvas() {
 }
 
 function renderHUD() {
-  let thisPlayer = room.state.players.get(room.sessionId);
+  thisPlayer = room.state.players.get(room.sessionId);
   if (!thisPlayer) {
     return;
   }
@@ -205,7 +215,7 @@ function canvasClicked(event) {
     possibleMoveTiles = utils.getPossibleMoveTiles(
       room.state.tiles,
       moveSource,
-      unit.moveRange
+      unit
     );
 
     render();

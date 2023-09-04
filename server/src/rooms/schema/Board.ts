@@ -41,13 +41,13 @@ export class Board extends Schema {
       }
     }
 
-    this.units.set("0,0", new Soldier(0));
-    this.units.set("3,-2", new Soldier(1));
+    // this.units.set("0,0", new Soldier(0));
+    // this.units.set("3,-2", new Soldier(1));
 
-    this.units.set("-3,-3", new Soldier(0));
+    // this.units.set("-3,-3", new Soldier(0));
 
-    this.units.set("-2,-2", new Tower(0));
-    this.units.set("-2,2", new Tower(1));
+    // this.units.set("-2,-2", new Tower(0));
+    // this.units.set("-2,2", new Tower(1));
 
     this.units.set("3,-4", new Pine());
   }
@@ -85,12 +85,25 @@ export class Board extends Schema {
     this.gameStarted = true;
     // TODO assign players to colors / provinces
     // Generate map
+    this.players.forEach((id: string, player: Player) => {
+      let randPos = "-6,-6";
+      while (!this.units.get(randPos)) {
+        let randIntX = Math.floor(Math.random() * 12) - 6;
+        let randIntY = Math.floor(Math.random() * 12) - 6;
+        randPos = randIntX + "," + randIntY;
+      }
+      this.units.set(randPos, new Soldier(0, player));
+      this.tiles.get(randPos).ownerId = player.playerId;
+    });
+    this.updateClients();
     //
   }
 
   startNextTurn() {
     this.currentPlayerNumber =
       (this.currentPlayerNumber + 1) % this.players.size;
+    // Tell client to change HUD
+    // this.updateClients();
   }
 
   removePlayer(id: string) {
@@ -123,9 +136,13 @@ export class Board extends Schema {
     if (moveDistance > unit.moveRange || moveDistance === -1) {
       return;
     }
+    if (moveDistance > 1 && this.tiles.get(dest_coord).ownerId !== unit.ownerId) {
+      return;
+    }
 
     this.units.delete(src_coord);
     this.units.set(dest_coord, unit);
+    this.tiles.get(dest_coord).ownerId = unit.ownerId;
 
     this.updateClients();
   }
