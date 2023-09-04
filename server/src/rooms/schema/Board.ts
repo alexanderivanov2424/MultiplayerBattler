@@ -86,14 +86,16 @@ export class Board extends Schema {
     this.gameStarted = true;
     // TODO assign players to colors / provinces
     // Generate map
-    this.players.forEach((player: Player, id: string) => {
-      let randPos = "-6,-6";
-      while (!utils.tileExists(this.tiles, randPos) || this.units.get(randPos)) {
+    this.players.forEach((player: Player) => {
+      let randPos;
+      do {
         let randIntX = Math.floor(Math.random() * 12) - 5;
         let randIntY = Math.floor(Math.random() * 12) - 5;
         randPos = randIntX + "," + randIntY;
-        console.log(randPos);
-      }
+      } while (
+        !utils.tileExists(this.tiles, randPos) ||
+        this.units.get(randPos)
+      );
       this.units.set(randPos, new Soldier(0, player));
       utils.captureTile(this.tiles, randPos, player.playerId);
     });
@@ -138,7 +140,10 @@ export class Board extends Schema {
     if (moveDistance > unit.moveRange || moveDistance === -1) {
       return;
     }
-    if (moveDistance > 1 && this.tiles.get(dest_coord).ownerId !== unit.ownerId) {
+    if (
+      moveDistance > 1 &&
+      this.tiles.get(dest_coord).ownerId !== unit.ownerId
+    ) {
       return;
     }
 
