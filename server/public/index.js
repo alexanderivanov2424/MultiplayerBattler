@@ -31,11 +31,17 @@ const HEX_NEIGHBORS = [
 const IMG_SOLDIER0 = document.getElementById("soldier0");
 const IMG_SOLDIER1 = document.getElementById("soldier1");
 const IMG_SOLDIER2 = document.getElementById("soldier2");
+const IMG_TOWER0 = document.getElementById("tower0");
+const IMG_TOWER1 = document.getElementById("tower1");
+const IMG_PINE = document.getElementById("pine");
 
 const TextureMap = {
   soldier0: IMG_SOLDIER0,
   soldier1: IMG_SOLDIER1,
   soldier2: IMG_SOLDIER2,
+  tower0: IMG_TOWER0,
+  tower1: IMG_TOWER1,
+  pine: IMG_PINE,
 };
 
 const TILE_COLOR = "#ff6060";
@@ -130,7 +136,7 @@ function drawUnitFromMap(tileCoord, unit) {
   );
 }
 
-function render() {
+function renderCanvas() {
   for (const [tileCoord, tile] of room.state.tiles) {
     drawTileFromMap(tileCoord, tile);
   }
@@ -138,6 +144,29 @@ function render() {
   for (const [unitCoord, unit] of room.state.units) {
     drawUnitFromMap(unitCoord, unit);
   }
+}
+
+function renderHUD() {
+  let thisPlayer = room.state.players.get(room.sessionId);
+  if (!thisPlayer) {
+    return;
+  }
+  if (room.state.gameStarted) {
+    readyButton.style.display = "none";
+  } else if (thisPlayer.readyToStart) {
+    readyButton.innerText = "Waiting for other players...";
+    readyButton.style.display = "inline-block";
+    readyButton.style.disabled = true;
+  } else {
+    readyButton.innerText = "Ready to Start!";
+    readyButton.style.display = "inline-block";
+    readyButton.style.disabled = false;
+  }
+}
+
+function render() {
+  renderCanvas();
+  renderHUD();
 }
 
 function axialRound([q, r]) {
@@ -161,14 +190,14 @@ function axialRound([q, r]) {
   return [0 + q_i, 0 + r_i];
 }
 
-function updateMovementHighlight() {
+function updateMovementHighlight(moveRange) {
   possibleMoveTiles = new Set();
 
   let neighbors = [];
   let next_neighbors = [moveSource];
-  let distance = 5;
+  let distance = moveRange;
 
-  while (distance > 0) {
+  while (distance >= 0) {
     neighbors = next_neighbors;
     next_neighbors = [];
 
@@ -209,10 +238,10 @@ function canvasClicked(event) {
 
   let unit = getUnitInTile([q, r]);
 
-  if (unit && unit.movable && !isMovingUnit) {
+  if (unit && unit.moveRange > 0 && !isMovingUnit) {
     isMovingUnit = true;
     moveSource = [q, r];
-    updateMovementHighlight();
+    updateMovementHighlight(unit.moveRange);
     render();
   } else if (isMovingUnit) {
     isMovingUnit = false;
@@ -223,14 +252,35 @@ function canvasClicked(event) {
   }
 }
 
+const readyButton = document.getElementById("ready-button");
+readyButton.addEventListener("click", () => room.send("readyToStart"));
+
 console.log("creating client");
 const client = new Colyseus.Client("ws://localhost:3000");
-const room = await client.joinOrCreate("game");
 
-render();
+let room;
+const cachedReconnectionToken =
+  window.localStorage.getItem("reconnectionToken");
+
+let joinedRoom = false;
+
+if (cachedReconnectionToken) {
+  try {
+    room = await client.reconnect(cachedReconnectionToken);
+    console.log("reconnected successfully", room);
+    joinedRoom = true;
+  } catch (e) {
+    console.log("server probably died, joining room normally");
+  }
+}
+
+if (!joinedRoom) {
+  room = await client.joinOrCreate("game");
+  console.log("joined successfully", room);
+}
+window.localStorage.setItem("reconnectionToken", room.reconnectionToken);
 
 room.state.listen("generation", () => {
-  console.log("room.state changed", room.state);
   render();
 });
 

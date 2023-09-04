@@ -6,6 +6,6 @@ export class Soldier extends Unit {
 
   constructor(level: number) {
     super("soldier" + level);
-    this.movable = true;
+    this.moveRange = 5;
   }
 }
