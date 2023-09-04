@@ -1,3 +1,5 @@
+import "./utils";
+
 const MAP_SIZE_X = 2000;
 const MAP_SIZE_Y = 2000;
 
@@ -18,15 +20,6 @@ for (let i = 0; i < EDGES; i++) {
     TILE_SIZE * Math.sin(i * ANGLE),
   ]);
 }
-
-const HEX_NEIGHBORS = [
-  [1, 0],
-  [-1, 0],
-  [0, 1],
-  [0, -1],
-  [1, -1],
-  [-1, 1],
-];
 
 const IMG_SOLDIER0 = document.getElementById("soldier0");
 const IMG_SOLDIER1 = document.getElementById("soldier1");
@@ -190,35 +183,6 @@ function axialRound([q, r]) {
   return [0 + q_i, 0 + r_i];
 }
 
-function updateMovementHighlight(moveRange) {
-  possibleMoveTiles = new Set();
-
-  let neighbors = [];
-  let next_neighbors = [moveSource];
-  let distance = moveRange;
-
-  while (distance >= 0) {
-    neighbors = next_neighbors;
-    next_neighbors = [];
-
-    for (let [q, r] of neighbors) {
-      possibleMoveTiles.add(q + "," + r);
-      for (let [shift_q, shift_r] of HEX_NEIGHBORS) {
-        let new_q = q + shift_q;
-        let new_r = r + shift_r;
-        if (possibleMoveTiles.has(new_q + "," + new_r)) {
-          continue;
-        }
-        if (!tileExists([new_q, new_r])) {
-          continue;
-        }
-        next_neighbors.push([new_q, new_r]);
-      }
-    }
-    distance--;
-  }
-}
-
 function getUnitInTile([q, r]) {
   return room.state.units.get(q + "," + r);
 }
@@ -241,7 +205,7 @@ function canvasClicked(event) {
   if (unit && unit.moveRange > 0 && !isMovingUnit) {
     isMovingUnit = true;
     moveSource = [q, r];
-    updateMovementHighlight(unit.moveRange);
+    possibleMoveTiles = getPossibleMoveTiles(unit.moveRange, tileExists);
     render();
   } else if (isMovingUnit) {
     isMovingUnit = false;

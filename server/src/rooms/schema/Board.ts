@@ -5,6 +5,7 @@ import { Unit } from "./Unit";
 import { Soldier } from "./units/Soldier";
 import { Tower } from "./units/Tower";
 import { Pine } from "./units/Pine";
+import "../../../public/utils";
 
 const HEX_NEIGHBORS = [
   [1, 0],
@@ -102,7 +103,12 @@ export class Board extends Schema {
     if (this.units.get(dest_coord)) {
       return;
     }
-    const moveDistance = this.getDistance(src, dest, unit.moveRange);
+    const moveDistance = getDistance(
+      src,
+      dest,
+      unit.moveRange,
+      this.tileExists
+    );
     console.log(moveDistance);
     if (moveDistance > unit.moveRange || moveDistance === -1) {
       return;
@@ -116,48 +122,5 @@ export class Board extends Schema {
 
   tileExists([q, r]: [number, number]) {
     return this.tiles.get(q + "," + r);
-  }
-
-  getDistance(
-    src: [number, number],
-    dest: [number, number],
-    max_distance: number
-  ) {
-    let checkedTiles = new Set();
-
-    let tilesToCheck = [];
-    let nextTilesToCheck = [src];
-
-    let distance = 0;
-
-    while (nextTilesToCheck.length > 0) {
-      tilesToCheck = nextTilesToCheck;
-      nextTilesToCheck = [];
-      distance++;
-
-      if (distance > max_distance) {
-        return -1;
-      }
-
-      for (let [q, r] of tilesToCheck) {
-        checkedTiles.add(q + "," + r);
-        for (let [shift_q, shift_r] of HEX_NEIGHBORS) {
-          let new_q = q + shift_q;
-          let new_r = r + shift_r;
-          if (checkedTiles.has(new_q + "," + new_r)) {
-            continue;
-          }
-          if (!this.tileExists([new_q, new_r])) {
-            continue;
-          }
-          if (new_q === dest[0] && new_r === dest[1]) {
-            return distance;
-          }
-          nextTilesToCheck.push([new_q, new_r]);
-        }
-      }
-    }
-
-    return -1;
   }
 }
