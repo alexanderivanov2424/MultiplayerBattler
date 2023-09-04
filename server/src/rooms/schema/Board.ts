@@ -5,7 +5,7 @@ import { Unit } from "./Unit";
 import { Soldier } from "./units/Soldier";
 import { Tower } from "./units/Tower";
 import { Pine } from "./units/Pine";
-import "../../../public/utils";
+import * as utils from "../../../public/utils";
 
 const HEX_NEIGHBORS = [
   [1, 0],
@@ -25,11 +25,12 @@ export class Board extends Schema {
 
   @type({ map: Player }) players = new MapSchema<Player>();
 
-  @type(["boolean"]) playerStartConfirmations = new ArraySchema<"boolean">();
-
   @type("boolean") gameStarted = false;
 
-  @type("number") currentPlayerTurn = 0;
+  @type("number") currentPlayerNumber = 0;
+
+  //TODO maybe remove
+  playerOrder: string[] = [];
 
   constructor() {
     super();
@@ -43,6 +44,8 @@ export class Board extends Schema {
     this.units.set("0,0", new Soldier(0));
     this.units.set("3,-2", new Soldier(1));
 
+    this.units.set("-3,-3", new Soldier(0));
+
     this.units.set("-2,-2", new Tower(0));
     this.units.set("-2,2", new Tower(1));
 
@@ -50,7 +53,9 @@ export class Board extends Schema {
   }
 
   addPlayer(id: string) {
-    this.players.set(id, new Player(id));
+    const playerNumber = this.players.size;
+    this.players.set(id, new Player(id, playerNumber));
+    this.playerOrder.push(id);
   }
 
   playerReadyToStart(id: string) {
@@ -83,6 +88,11 @@ export class Board extends Schema {
     //
   }
 
+  startNextTurn() {
+    this.currentPlayerNumber =
+      (this.currentPlayerNumber + 1) % this.players.size;
+  }
+
   removePlayer(id: string) {
     this.players.delete(id);
   }
@@ -103,11 +113,11 @@ export class Board extends Schema {
     if (this.units.get(dest_coord)) {
       return;
     }
-    const moveDistance = getDistance(
+    const moveDistance = utils.getDistance(
+      this.tiles,
       src,
       dest,
-      unit.moveRange,
-      this.tileExists
+      unit.moveRange
     );
     console.log(moveDistance);
     if (moveDistance > unit.moveRange || moveDistance === -1) {
@@ -118,9 +128,5 @@ export class Board extends Schema {
     this.units.set(dest_coord, unit);
 
     this.updateClients();
-  }
-
-  tileExists([q, r]: [number, number]) {
-    return this.tiles.get(q + "," + r);
   }
 }

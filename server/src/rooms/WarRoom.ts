@@ -9,12 +9,25 @@ export class WarRoom extends Room<Board> {
     console.log("set state");
 
     this.onMessage("move", (client, [src, dest]) => {
+      if (!this.isClientTurn(client)) return;
       this.state.moveUnit(src, dest);
     });
 
     this.onMessage("readyToStart", (client) => {
       this.state.playerReadyToStart(client.sessionId);
     });
+
+    this.onMessage("endTurn", (client) => {
+      if (!this.isClientTurn(client)) return;
+      this.state.startNextTurn();
+    });
+  }
+
+  isClientTurn(client: Client) {
+    return (
+      this.state.players.get(client.sessionId).playerNumber ===
+      this.state.currentPlayerNumber
+    );
   }
 
   onJoin(client: Client, options: any) {

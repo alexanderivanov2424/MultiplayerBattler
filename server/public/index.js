@@ -1,4 +1,4 @@
-import "./utils";
+import * as utils from "./utils.js";
 
 const MAP_SIZE_X = 2000;
 const MAP_SIZE_Y = 2000;
@@ -21,6 +21,12 @@ for (let i = 0; i < EDGES; i++) {
   ]);
 }
 
+const TILE_COLOR = "#ff6060";
+const TILE_BORDER = "#000000";
+
+const TILE_COLOR_SHADDED = "#cc4040";
+const TILE_BORDER_SHADDED = "#000000";
+
 const IMG_SOLDIER0 = document.getElementById("soldier0");
 const IMG_SOLDIER1 = document.getElementById("soldier1");
 const IMG_SOLDIER2 = document.getElementById("soldier2");
@@ -36,12 +42,6 @@ const TextureMap = {
   tower1: IMG_TOWER1,
   pine: IMG_PINE,
 };
-
-const TILE_COLOR = "#ff6060";
-const TILE_BORDER = "#000000";
-
-const TILE_COLOR_SHADDED = "#cc4040";
-const TILE_BORDER_SHADDED = "#000000";
 
 // ################################
 
@@ -158,8 +158,8 @@ function renderHUD() {
 }
 
 function render() {
-  renderCanvas();
   renderHUD();
+  renderCanvas();
 }
 
 function axialRound([q, r]) {
@@ -187,10 +187,6 @@ function getUnitInTile([q, r]) {
   return room.state.units.get(q + "," + r);
 }
 
-function tileExists([q, r]) {
-  return room.state.tiles.get(q + "," + r);
-}
-
 function canvasClicked(event) {
   let x = event.offsetX - MAP_SHIFT_X;
   let y = event.offsetY - MAP_SHIFT_Y;
@@ -205,7 +201,13 @@ function canvasClicked(event) {
   if (unit && unit.moveRange > 0 && !isMovingUnit) {
     isMovingUnit = true;
     moveSource = [q, r];
-    possibleMoveTiles = getPossibleMoveTiles(unit.moveRange, tileExists);
+
+    possibleMoveTiles = utils.getPossibleMoveTiles(
+      room.state.tiles,
+      moveSource,
+      unit.moveRange
+    );
+
     render();
   } else if (isMovingUnit) {
     isMovingUnit = false;
@@ -220,7 +222,7 @@ const readyButton = document.getElementById("ready-button");
 readyButton.addEventListener("click", () => room.send("readyToStart"));
 
 console.log("creating client");
-const client = new Colyseus.Client("ws://localhost:3000");
+const client = new Colyseus.Client(`ws://${window.location.host}`);
 
 let room;
 const cachedReconnectionToken =

@@ -7,7 +7,7 @@ const HEX_NEIGHBORS = [
   [-1, 1],
 ];
 
-function getDistance(src, dest, max_distance, tileExists) {
+export function getDistance(tiles, src, dest, max_distance) {
   let checkedTiles = new Set();
 
   let tilesToCheck = [];
@@ -32,7 +32,7 @@ function getDistance(src, dest, max_distance, tileExists) {
         if (checkedTiles.has(new_q + "," + new_r)) {
           continue;
         }
-        if (!tileExists([new_q, new_r])) {
+        if (!tileExists(tiles, [new_q, new_r])) {
           continue;
         }
         if (new_q === dest[0] && new_r === dest[1]) {
@@ -46,7 +46,11 @@ function getDistance(src, dest, max_distance, tileExists) {
   return -1;
 }
 
-function getPossibleMoveTiles(moveRange, tileExists) {
+export function tileExists(tiles, [q, r]) {
+  return tiles.get(q + "," + r);
+}
+
+export function getPossibleMoveTiles(tiles, moveSource, moveRange) {
   let possibleMoveTiles = new Set();
 
   let neighbors = [];
@@ -65,7 +69,7 @@ function getPossibleMoveTiles(moveRange, tileExists) {
         if (possibleMoveTiles.has(new_q + "," + new_r)) {
           continue;
         }
-        if (!tileExists([new_q, new_r])) {
+        if (!tileExists(tiles, [new_q, new_r])) {
           continue;
         }
         next_neighbors.push([new_q, new_r]);
