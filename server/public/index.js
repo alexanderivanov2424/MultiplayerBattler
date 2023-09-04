@@ -53,7 +53,7 @@ const ctx = canvas.getContext("2d");
 canvas.style.width = `${MAP_SIZE_X}px`;
 canvas.style.height = `${MAP_SIZE_Y}px`;
 
-const scale = 4 * window.devicePixelRatio;
+const scale = window.devicePixelRatio;
 canvas.width = Math.floor(MAP_SIZE_X * scale);
 canvas.height = Math.floor(MAP_SIZE_Y * scale);
 ctx.scale(scale, scale);
