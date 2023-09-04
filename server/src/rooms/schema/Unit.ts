@@ -5,7 +5,7 @@ export class Unit extends Schema {
 
   @type("string") unitName: string;
 
-  @type("boolean") movable: boolean = false;
+  @type("number") moveRange: number = 0;
 
   constructor(unitName: string) {
     super();
@@ -13,6 +13,6 @@ export class Unit extends Schema {
   }
 
   getMovementRange() {
-    return 5;
+    return this.moveRange;
   }
 }
