@@ -206,7 +206,7 @@ function canvasClicked(event) {
     isMovingUnit = true;
     moveSource = [q, r];
 
-    possibleMoveTiles = utils.getPossibleMoveTiles(
+    possibleMoveTiles = utils.getTilesInMoveRange(
       room.state.tiles,
       moveSource,
       unit

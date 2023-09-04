@@ -130,20 +130,7 @@ export class Board extends Schema {
     if (this.units.get(dest_coord)) {
       return;
     }
-    const moveDistance = utils.getDistance(
-      this.tiles,
-      src,
-      dest,
-      unit.moveRange
-    );
-    console.log(moveDistance);
-    if (moveDistance > unit.moveRange || moveDistance === -1) {
-      return;
-    }
-    if (
-      moveDistance > 1 &&
-      this.tiles.get(dest_coord).ownerId !== unit.ownerId
-    ) {
+    if (!utils.getTilesInMoveRange(this.tiles, src, unit).has(dest_coord)) {
       return;
     }
 
