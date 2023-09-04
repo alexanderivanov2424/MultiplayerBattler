@@ -55,3 +55,24 @@ export function getTilesInMoveRange(tiles, moveSource, unit) {
 
   return tilesInMoveRange;
 }
+
+function isCapturable(units, unit, destTile) {
+  return [moveDest, ...getNeighbors(units, moveDest)].every(([q, r]) => {
+    const defendingUnit = units.get(q + "," + r);
+    return (
+      moveDest.ownerId === unit.ownerId && // you can't take your own units
+      moveDest.ownerId !== defendingUnit.ownerId && //
+      (unit.level === MAX_LEVEL || unit.level > defendingUnit.level)
+    );
+  });
+}
+
+export function getValidMoveTiles(tiles, units, moveSource, unit) {
+  const validMoveTiles = getTilesInMoveRange(tiles, moveSource, unit);
+  for (const moveDest of validMoveTiles) {
+    if (!isCapturable()) {
+      validMoveTiles.delete(moveDest);
+    }
+  }
+  return validMoveTiles;
+}

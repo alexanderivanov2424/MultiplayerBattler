@@ -6,7 +6,7 @@ export class Soldier extends Unit {
   @type("number") level: number;
 
   constructor(level: number, owner: Player) {
-    super("soldier" + level, owner);
+    super("soldier" + level, owner, level);
     this.moveRange = 5;
   }
 }
