@@ -21,12 +21,13 @@ for (let i = 0; i < EDGES; i++) {
   ]);
 }
 
-const TILE_COLOR_NEUTRAL = "#a0a0a0";
-const PLAYER_COLORS = ["#ff6060", "#6060ff", "#60ff60"];
 const TILE_BORDER = "#000000";
-
-const TILE_COLOR_SHADDED = "#cc4040";
-const TILE_BORDER_SHADDED = "#000000";
+const NEUTRAL_TILE_COLORS = ["#a0a0a0", "#606060"];
+const PLAYER_TILE_COLORS = [
+  ["#ff6060", "#cc4040"],
+  ["#6060ff", "#4040cc"],
+  ["#60ff60", "#40cc40"],
+];
 
 const IMG_SOLDIER0 = document.getElementById("soldier0");
 const IMG_SOLDIER1 = document.getElementById("soldier1");
@@ -109,19 +110,12 @@ function getPixelFromTileCoord([q, r]) {
 
 function drawTileFromMap(tileCoord, tile) {
   let [x, y] = getPixelFromTileCoord(parseTileCoord(tileCoord));
-  let borderColor = "";
-  let fillColor = "";
-  if (isMovingUnit) {
-    [borderColor, fillColor] = !possibleMoveTiles.has(tileCoord)
-      ? [TILE_BORDER_SHADDED, TILE_COLOR_SHADDED]
-      : [TILE_BORDER, PLAYER_COLORS[thisPlayer.playerNumber]];
-  } else {
-    borderColor = TILE_BORDER;
-    fillColor = (tile.ownerId === "none")
-      ? TILE_COLOR_NEUTRAL
-      : PLAYER_COLORS[room.state.players.get(tile.ownerId).playerNumber];
-  }
-  drawHexagon(x, y, borderColor, fillColor);
+  let [color, shadedColor] =
+    PLAYER_TILE_COLORS[room.state.players.get(tile.ownerId)?.playerNumber] ||
+    NEUTRAL_TILE_COLORS;
+  let fillColor =
+    isMovingUnit && !possibleMoveTiles.has(tileCoord) ? shadedColor : color;
+  drawHexagon(x, y, TILE_BORDER, fillColor);
 }
 
 function drawUnitFromMap(tileCoord, unit) {
