@@ -13,7 +13,9 @@ export class Unit extends Schema {
   constructor(unitName: string, owner?: Player, level: number = 0) {
     super();
     this.unitName = unitName;
-    this.ownerId = owner?.playerId;
+    if (owner) {
+      this.ownerId = owner.playerId;
+    }
     this.level = level;
   }
 

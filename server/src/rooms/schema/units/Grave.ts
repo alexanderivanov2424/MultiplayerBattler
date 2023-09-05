@@ -4,6 +4,6 @@ import { Player } from "../Player";
 
 export class Grave extends Unit {
   constructor() {
-    super("grave", null);
+    super("grave", null, -1);
   }
 }

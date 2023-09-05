@@ -4,6 +4,6 @@ import { Player } from "../Player";
 
 export class Castle extends Unit {
   constructor(owner: Player) {
-    super("castle", owner);
+    super("castle", owner, 0);
   }
 }

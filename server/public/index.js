@@ -29,19 +29,19 @@ const PLAYER_TILE_COLORS = [
   ["#60ff60", "#40cc40"],
 ];
 
-const IMG_SOLDIER0 = document.getElementById("soldier0");
 const IMG_SOLDIER1 = document.getElementById("soldier1");
 const IMG_SOLDIER2 = document.getElementById("soldier2");
-const IMG_TOWER0 = document.getElementById("tower0");
-const IMG_TOWER1 = document.getElementById("tower1");
+const IMG_SOLDIER3 = document.getElementById("soldier3");
+const IMG_TOWER2 = document.getElementById("tower2");
+const IMG_TOWER3 = document.getElementById("tower3");
 const IMG_PINE = document.getElementById("pine");
 
 const TextureMap = {
-  soldier0: IMG_SOLDIER0,
   soldier1: IMG_SOLDIER1,
   soldier2: IMG_SOLDIER2,
-  tower0: IMG_TOWER0,
-  tower1: IMG_TOWER1,
+  soldier3: IMG_SOLDIER3,
+  tower2: IMG_TOWER2,
+  tower3: IMG_TOWER3,
   pine: IMG_PINE,
 };
 
@@ -122,7 +122,7 @@ function drawUnitFromMap(tileCoord, unit) {
   let [x, y] = getPixelFromTileCoord(parseTileCoord(tileCoord));
   let size = TILE_SIZE * 1.5;
 
-  let image = TextureMap[unit.unitName] || IMG_SOLDIER0;
+  let image = TextureMap[unit.unitName] || IMG_SOLDIER1;
 
   ctx.drawImage(
     image,
@@ -144,10 +144,11 @@ function renderCanvas() {
 }
 
 function renderHUD() {
-  thisPlayer = room.state.players.get(room.sessionId);
   if (!thisPlayer) {
     return;
   }
+
+  // Ready Button
   if (room.state.gameStarted) {
     readyButton.style.display = "none";
   } else if (thisPlayer.readyToStart) {
@@ -159,9 +160,17 @@ function renderHUD() {
     readyButton.style.display = "inline-block";
     readyButton.style.disabled = false;
   }
+
+  // Next Turn Button
+  if (room.state.gameStarted && isPlayersTurn()) {
+    endTurnButton.style.display = "inline-block";
+  } else {
+    endTurnButton.style.display = "none";
+  }
 }
 
 function render() {
+  thisPlayer = room.state.players.get(room.sessionId);
   renderHUD();
   renderCanvas();
 }
@@ -192,6 +201,9 @@ function getUnitInTile([q, r]) {
 }
 
 function canvasClicked(event) {
+  if (!isPlayersTurn()) {
+    return;
+  }
   let x = event.offsetX - MAP_SHIFT_X;
   let y = event.offsetY - MAP_SHIFT_Y;
 
@@ -202,12 +214,18 @@ function canvasClicked(event) {
 
   let unit = getUnitInTile([q, r]);
 
-  if (unit && unit.ownerId === thisPlayer.playerId && unit.moveRange > 0 && !isMovingUnit) {
+  if (
+    unit &&
+    unit.ownerId === thisPlayer.playerId &&
+    unit.moveRange > 0 &&
+    !isMovingUnit
+  ) {
     isMovingUnit = true;
     moveSource = [q, r];
 
-    possibleMoveTiles = utils.getTilesInMoveRange(
+    possibleMoveTiles = utils.getValidMoveTiles(
       room.state.tiles,
+      room.state.units,
       moveSource,
       unit
     );
@@ -222,8 +240,18 @@ function canvasClicked(event) {
   }
 }
 
+function isPlayersTurn() {
+  return room.state.currentPlayerNumber === thisPlayer.playerNumber;
+}
+
 const readyButton = document.getElementById("ready-button");
+const endTurnButton = document.getElementById("end-turn-button");
 readyButton.addEventListener("click", () => room.send("readyToStart"));
+endTurnButton.addEventListener("click", () => {
+  if (!isMovingUnit) {
+    room.send("endTurn");
+  }
+});
 
 console.log("creating client");
 const client = new Colyseus.Client(`ws://${window.location.host}`);

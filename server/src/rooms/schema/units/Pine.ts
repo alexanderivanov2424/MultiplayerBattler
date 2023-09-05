@@ -3,6 +3,6 @@ import { Unit } from "../Unit";
 
 export class Pine extends Unit {
   constructor() {
-    super("pine", null);
+    super("pine", null, -1);
   }
 }
