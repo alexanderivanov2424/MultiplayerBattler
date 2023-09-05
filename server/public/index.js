@@ -285,21 +285,21 @@ room.state.listen("generation", () => {
 /*
 All image sources: https://github.com/yiotro/Antiyoy/tree/master/assets/field_elements
 
-- click on tower -> show shields (client side only)
+- Gameplay:
+  - tracking provinces, income, currency
+  - click on tower -> show shields (client side only)
+  - combining units
 
--Start mutliplayer features
-  - fake second player territory for tiles with different ownership
-  - move only your own units
-  - capture empty tiles are border
+  - world generation
 
-- player HUD
+- Player HUD:
+  - display player name and color in top left
+  - display all players in top left (durring start up too)
   - income, money, provinces
-  - purchase buttons
+  - purchase buttons for units
 
 - house keeping
-  - constants and helper functions in their own file.
+  - hex coord / tilecoord conversions??? Make less ugly
   - pull out rendering functions
 
-
-- multiple players generate UUIDs
 */
