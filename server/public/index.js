@@ -156,11 +156,11 @@ function renderHUD() {
   } else if (thisPlayer.readyToStart) {
     readyButton.innerText = "Waiting for other players...";
     readyButton.style.display = "inline-block";
-    readyButton.style.disabled = true;
+    readyButton.disabled = true;
   } else {
     readyButton.innerText = "Ready to Start!";
     readyButton.style.display = "inline-block";
-    readyButton.style.disabled = false;
+    readyButton.disabled = false;
   }
 
   // Next Turn Button
