@@ -63,7 +63,8 @@ ctx.scale(scale, scale);
 const panzoom = Panzoom(canvas, {
   canvas: true,
   minScale: 0.5,
-  maxScale: 2,
+  maxScale: 1.5,
+  step: 0.15,
   startX: (window.innerWidth - MAP_SIZE_X) / 2,
   startY: (window.innerHeight - MAP_SIZE_Y) / 2,
 });
