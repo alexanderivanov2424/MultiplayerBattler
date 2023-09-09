@@ -32,6 +32,7 @@ const PLAYER_TILE_COLORS = [
 const IMG_SOLDIER1 = document.getElementById("soldier1");
 const IMG_SOLDIER2 = document.getElementById("soldier2");
 const IMG_SOLDIER3 = document.getElementById("soldier3");
+const IMG_SOLDIER4 = document.getElementById("soldier4");
 const IMG_TOWER2 = document.getElementById("tower2");
 const IMG_TOWER3 = document.getElementById("tower3");
 const IMG_PINE = document.getElementById("pine");
@@ -40,6 +41,7 @@ const TextureMap = {
   soldier1: IMG_SOLDIER1,
   soldier2: IMG_SOLDIER2,
   soldier3: IMG_SOLDIER3,
+  soldier4: IMG_SOLDIER4,
   tower2: IMG_TOWER2,
   tower3: IMG_TOWER3,
   pine: IMG_PINE,
