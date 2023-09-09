@@ -18,8 +18,6 @@ const HEX_NEIGHBORS = [
 ];
 
 export class Board extends Schema {
-  @type("number") generation = 0;
-
   @type({ map: Tile }) tiles = new MapSchema<Tile>();
 
   @type({ map: Unit }) units = new MapSchema<Unit>();
@@ -55,13 +53,11 @@ export class Board extends Schema {
     }
     this.players.get(id).readyToStart = true;
     if (this.players.size < 2) {
-      this.updateClients();
       return;
     }
     if (this.allPlayersReady()) {
       this.startGame();
     }
-    this.updateClients();
   }
 
   allPlayersReady() {
@@ -96,23 +92,15 @@ export class Board extends Schema {
       utils.captureTile(this.tiles, [q - 1, r - 1], player.playerId);
       utils.captureTile(this.tiles, [q - 1, r + 1], player.playerId);
     });
-    this.updateClients();
-    //
   }
 
   startNextTurn() {
     this.currentPlayerNumber =
       (this.currentPlayerNumber + 1) % this.players.size;
-    // Tell client to change HUD
-    this.updateClients();
   }
 
   removePlayer(id: string) {
     this.players.delete(id);
-  }
-
-  updateClients() {
-    this.generation++;
   }
 
   moveUnit(src: [number, number], dest: [number, number]) {
@@ -136,7 +124,5 @@ export class Board extends Schema {
     this.units.delete(src_coord);
     this.units.set(dest_coord, unit);
     utils.captureTile(this.tiles, dest, unit.ownerId);
-
-    this.updateClients();
   }
 }

@@ -280,7 +280,7 @@ if (!joinedRoom) {
 }
 window.localStorage.setItem("reconnectionToken", room.reconnectionToken);
 
-room.state.listen("generation", () => {
+room.onStateChange(() => {
   render();
 });
 
