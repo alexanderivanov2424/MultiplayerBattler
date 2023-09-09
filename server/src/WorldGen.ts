@@ -7,15 +7,17 @@ const GRID_R_SIZE = 21;
 export function generateMap() {
   let tileGrid = makeEmptyGrid(GRID_Q_SIZE, GRID_R_SIZE);
 
-  addNoise(tileGrid, 0.8, false);
-  //TODO actual gen code
+  // addNoise(tileGrid, 0.8, false);
 
-  stepAutomata(tileGrid, 5);
+  // stepAutomata(tileGrid, 5);
 
-  addNoise(tileGrid, 0.5, true);
-  addNoise(tileGrid, 0.3, false);
+  // addNoise(tileGrid, 0.5, true);
+  // addNoise(tileGrid, 0.3, false);
 
-  stepAutomata(tileGrid, 10);
+  // stepAutomata(tileGrid, 10);
+  addNoise(tileGrid, 0.1, true);
+  addBlobs(tileGrid, 10, 4);
+  stepAutomata(tileGrid, 3);
 
   return convertGridtoCoords(tileGrid);
 }
@@ -35,6 +37,59 @@ function addNoise(grid: number[][], ratio: number, cut: boolean) {
   for (let i = 0; i < grid.length; i++) {
     for (let j = 0; j < grid[0].length; j++) {
       grid[i][j] = Math.random() > ratio ? Number(!cut) : Number(cut);
+    }
+  }
+}
+
+function addBlobs(grid: number[][], num: number, size: number) {
+  for (let i = 0; i < num; i++) {
+    addBlob(grid, size);
+  }
+}
+
+function addBlob(grid: number[][], size: number) {
+  let shift_i = Math.random() * grid.length;
+  let shift_j = Math.random() * grid[0].length;
+
+  let inset = 3;
+
+  let center_i = Math.random() * (grid.length - inset * 2) + inset;
+  let center_j = Math.random() * (grid[0].length - inset * 2) + inset;
+
+  let fall_off = 4;
+
+  for (let i = 0; i < grid.length; i++) {
+    for (let j = 0; j < grid[0].length; j++) {
+      if (grid[i][j] === 1) {
+        continue;
+      }
+      //distance to center of blob
+      let distance_to_center = Math.sqrt(
+        (i - center_i) * (i - center_i) + (j - center_j) * (j - center_j)
+      );
+      distance_to_center = Math.min(
+        Math.max(size + fall_off - distance_to_center, 0),
+        fall_off
+      );
+
+      //distance to edge
+      let distance_to_edge = Math.min(
+        i,
+        grid.length - i - 1,
+        j,
+        grid[0].length - j - 1,
+        fall_off
+      );
+
+      let v =
+        0.25 * Math.cos((i + shift_i) / 1) +
+        0.25 * Math.sin((j + shift_j) / 1) +
+        0.5;
+
+      v *= distance_to_center / fall_off;
+      v *= distance_to_edge / fall_off;
+
+      grid[i][j] = v > 0.5 ? 1 : 0;
     }
   }
 }
@@ -71,12 +126,11 @@ function stepAutomata(grid: number[][], steps: number) {
         for (let [i_shift, j_shift] of neighbors) {
           count += getValueSafe(grid, i + i_shift, j + j_shift, 0.0);
         }
-        if (count < 2) {
+        if (grid_next[i][j] === 1 && count < 2) {
           grid_next[i][j] = 0;
-        } else if (count > 4) {
+        }
+        if (grid_next[i][j] === 0 && count > 4) {
           grid_next[i][j] = 1;
-        } else {
-          grid_next[i][j] = grid[i][j];
         }
       }
     }
