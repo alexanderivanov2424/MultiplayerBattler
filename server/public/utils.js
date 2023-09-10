@@ -13,12 +13,36 @@ export function hexToTileCoord([q, r]) {
   return q + "," + r;
 }
 
-export function captureTile(tiles, [q, r], playerId) {
-  const tile = tiles.get(hexToTileCoord([q, r]));
+export function captureTile(tiles, provinceName, playerProvinces, [q, r], playerId) {
+  const tileCoord = hexToTileCoord([q, r]);
+  const tile = tiles.get(tileCoord);
   if (!tile) {
     return;
   }
   tile.ownerId = playerId;
+  // extend the province we're moving from if necessary
+  const srcProvince = playerProvinces.get(provinceName);
+  if (!srcProvince.tiles.get(tileCoord)) {
+    tile.provinceName = provinceName;
+    srcProvince.tiles.set(tileCoord, tile);
+    srcProvince.income += 1;
+  }
+  // merge adjacent provinces of the same owner if necessary
+  for (const [q_n, r_n] of getNeighbors(tiles, [q, r])) {
+    const neighbor_tile = tiles.get(hexToTileCoord([q_n, r_n]));
+    if (neighbor_tile.ownerId === tile.ownerId) {
+      if (neighbor_tile.provinceName !== provinceName) {
+        const provinceToMerge = playerProvinces.get(neighbor_tile.provinceName);
+        provinceToMerge.tiles.forEach((new_tile, new_coord) => {
+          new_tile.provinceName = provinceName;
+          srcProvince.tiles.set(new_coord, new_tile);
+        });
+        playerProvinces.delete(provinceToMerge.name);
+        srcProvince.income += provinceToMerge.income;
+      }
+    }
+  }
+  // TODO: split provinces of the previous owner if necessary
 }
 
 // Check 6 neighbors of [q,r] and return any members of collection that are there.
@@ -66,13 +90,14 @@ function getTilesInMoveRange(tiles, moveSource, unit) {
 }
 
 function isValidMoveTile(tiles, units, unit, moveDest) {
-  const destTile = tiles.get(moveDest[0] + "," + moveDest[1]);
+  const destTileCoord = moveDest[0] + "," + moveDest[1];
+  const destTile = tiles.get(destTileCoord);
   if (!destTile) {
     return false;
   }
   if (destTile.ownerId === unit.ownerId) {
     //TODO combine units
-    return !units.get(moveDest);
+    return !units.get(destTileCoord);
   }
   return [moveDest, ...getNeighbors(units, moveDest)].every(([q, r]) => {
     const defendingUnit = units.get(q + "," + r);

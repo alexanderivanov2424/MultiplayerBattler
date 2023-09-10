@@ -1,6 +1,7 @@
 import { Schema, MapSchema, ArraySchema, type } from "@colyseus/schema";
 import { Tile } from "./Tile";
 import { Player } from "./Player";
+import { Province } from "./Province";
 import { Unit } from "./Unit";
 import { Soldier } from "./units/Soldier";
 import { Tower } from "./units/Tower";
@@ -83,14 +84,18 @@ export class Board extends Schema {
         r = Math.round(r * 0.75);
         randCoord = utils.hexToTileCoord([q, r]);
       } while (!this.tiles.get(randCoord) || this.units.get(randCoord));
-
       this.units.set(utils.hexToTileCoord([q, r]), new Soldier(1, player));
-      this.units.set(utils.hexToTileCoord([q + 1, r]), new Soldier(1, player));
-      utils.captureTile(this.tiles, [q, r], player.playerId);
-      utils.captureTile(this.tiles, [q + 1, r], player.playerId);
-      utils.captureTile(this.tiles, [q + 1, r + 1], player.playerId);
-      utils.captureTile(this.tiles, [q - 1, r - 1], player.playerId);
-      utils.captureTile(this.tiles, [q - 1, r + 1], player.playerId);
+      const adjCoord = utils.hexToTileCoord([q + 1, r]);
+      if (this.tiles.get(adjCoord)) {
+        this.units.set(adjCoord, new Soldier(1, player));
+      }
+      const province1 = player.createProvince();
+      const province2 = player.createProvince();
+      utils.captureTile(this.tiles, province1.name, player.provinces, [q, r], player.playerId);
+      utils.captureTile(this.tiles, province1.name, player.provinces, [q + 1, r], player.playerId);
+      utils.captureTile(this.tiles, province1.name, player.provinces, [q + 1, r + 1], player.playerId);
+      utils.captureTile(this.tiles, province2.name, player.provinces, [q - 1, r - 1], player.playerId);
+      utils.captureTile(this.tiles, province1.name, player.provinces, [q - 1, r + 1], player.playerId);
     });
   }
 
@@ -123,6 +128,9 @@ export class Board extends Schema {
 
     this.units.delete(src_coord);
     this.units.set(dest_coord, unit);
-    utils.captureTile(this.tiles, dest, unit.ownerId);
+
+    const player = this.players.get(unit.ownerId);
+    const srcProvinceName = this.tiles.get(src_coord).provinceName;
+    utils.captureTile(this.tiles, srcProvinceName, player.provinces, dest, unit.ownerId);
   }
 }

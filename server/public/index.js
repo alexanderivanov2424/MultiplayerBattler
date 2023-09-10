@@ -176,6 +176,9 @@ function render() {
   thisPlayer = room.state.players.get(room.sessionId);
   renderHUD();
   renderCanvas();
+  thisPlayer?.provinces?.forEach((province, name) => {
+    console.log(`Province ${name} Income: ${province.income}`);
+  });
 }
 
 function axialRound([q, r]) {
