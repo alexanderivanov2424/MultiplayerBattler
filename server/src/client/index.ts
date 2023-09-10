@@ -1,4 +1,13 @@
-import * as utils from "./utils.js";
+import { type Room, Client } from "colyseus.js";
+import Panzoom from "@panzoom/panzoom";
+
+import type { Board } from "../rooms/schema/Board";
+import type { Tile } from "../rooms/schema/Tile";
+import type { Unit } from "../rooms/schema/Unit";
+import type { Player } from "../rooms/schema/Player";
+
+import * as utils from "../common/utils";
+import { AxialCoords, TileCoord } from "../common/utils";
 
 const MAP_SIZE_X = 2000;
 const MAP_SIZE_Y = 2000;
@@ -13,7 +22,7 @@ const VERTICAL_UNIT = Math.sqrt(3.0) * TILE_SIZE;
 
 const EDGES = 6;
 const ANGLE = (2 * Math.PI) / EDGES;
-const VERTICES = []; // precompute flat top hex vertices
+const VERTICES: AxialCoords[] = []; // precompute flat top hex vertices
 for (let i = 0; i < EDGES; i++) {
   VERTICES.push([
     TILE_SIZE * Math.cos(i * ANGLE),
@@ -29,15 +38,15 @@ const PLAYER_TILE_COLORS = [
   ["#60ff60", "#40cc40"],
 ];
 
-const IMG_SOLDIER1 = document.getElementById("soldier1");
-const IMG_SOLDIER2 = document.getElementById("soldier2");
-const IMG_SOLDIER3 = document.getElementById("soldier3");
-const IMG_SOLDIER4 = document.getElementById("soldier4");
-const IMG_TOWER2 = document.getElementById("tower2");
-const IMG_TOWER3 = document.getElementById("tower3");
-const IMG_PINE = document.getElementById("pine");
+const IMG_SOLDIER1 = document.getElementById("soldier1") as HTMLImageElement;
+const IMG_SOLDIER2 = document.getElementById("soldier2") as HTMLImageElement;
+const IMG_SOLDIER3 = document.getElementById("soldier3") as HTMLImageElement;
+const IMG_SOLDIER4 = document.getElementById("soldier4") as HTMLImageElement;
+const IMG_TOWER2 = document.getElementById("tower2") as HTMLImageElement;
+const IMG_TOWER3 = document.getElementById("tower3") as HTMLImageElement;
+const IMG_PINE = document.getElementById("pine") as HTMLImageElement;
 
-const TextureMap = {
+const TextureMap: Partial<Record<string, HTMLImageElement>> = {
   soldier1: IMG_SOLDIER1,
   soldier2: IMG_SOLDIER2,
   soldier3: IMG_SOLDIER3,
@@ -49,7 +58,7 @@ const TextureMap = {
 
 // ################################
 
-const canvas = document.getElementById("canvas");
+const canvas = document.getElementById("canvas") as HTMLCanvasElement;
 const ctx = canvas.getContext("2d");
 
 canvas.style.width = `${MAP_SIZE_X}px`;
@@ -73,14 +82,19 @@ canvas.addEventListener("click", canvasClicked);
 
 // ################################
 
-let thisPlayer = {};
+let thisPlayer: Player;
 let isMovingUnit = false;
-let moveSource = [0, 0];
+let moveSource: AxialCoords = [0, 0];
 let possibleMoveTiles = new Set();
 
 // ################################
 
-function drawHexagon(x, y, borderColor, fillColor) {
+function drawHexagon(
+  x: number,
+  y: number,
+  borderColor: string,
+  fillColor: string
+) {
   ctx.beginPath();
   for (let i = 0; i < VERTICES.length; i++) {
     let xx = x + VERTICES[i][0] + MAP_SHIFT_X;
@@ -98,13 +112,13 @@ function drawHexagon(x, y, borderColor, fillColor) {
   ctx.fill();
 }
 
-function getPixelFromTileCoord([q, r]) {
+function getPixelFromTileCoord([q, r]: AxialCoords) {
   let x = HORIZONTAL_UNIT * q;
   let y = VERTICAL_UNIT * (q / 2 + r);
   return [x, y];
 }
 
-function drawTileFromMap(tileCoord, tile) {
+function drawTileFromMap(tileCoord: TileCoord, tile: Tile) {
   let [x, y] = getPixelFromTileCoord(utils.parseTileCoord(tileCoord));
   let [color, shadedColor] =
     PLAYER_TILE_COLORS[room.state.players.get(tile.ownerId)?.playerNumber] ||
@@ -114,7 +128,7 @@ function drawTileFromMap(tileCoord, tile) {
   drawHexagon(x, y, TILE_BORDER, fillColor);
 }
 
-function drawUnitFromMap(tileCoord, unit) {
+function drawUnitFromMap(tileCoord: TileCoord, unit: Unit) {
   let [x, y] = getPixelFromTileCoord(utils.parseTileCoord(tileCoord));
   let size = TILE_SIZE * 1.5;
 
@@ -174,7 +188,7 @@ function render() {
   });
 }
 
-function axialRound([q, r]) {
+function axialRound([q, r]: AxialCoords) {
   let s = -q - r; // convert to cube coords
 
   let q_i = Math.round(q);
@@ -195,11 +209,11 @@ function axialRound([q, r]) {
   return [0 + q_i, 0 + r_i];
 }
 
-function getUnitInTile([q, r]) {
-  return room.state.units.get(q + "," + r);
+function getUnitInTile([q, r]: AxialCoords) {
+  return room.state.units.get(utils.hexToTileCoord([q, r]));
 }
 
-function canvasClicked(event) {
+function canvasClicked(event: MouseEvent) {
   if (!isPlayersTurn()) {
     return;
   }
@@ -243,8 +257,8 @@ function isPlayersTurn() {
   return room.state.currentPlayerNumber === thisPlayer.playerNumber;
 }
 
-const readyButton = document.getElementById("ready-button");
-const endTurnButton = document.getElementById("end-turn-button");
+const readyButton = document.getElementById("ready") as HTMLButtonElement;
+const endTurnButton = document.getElementById("end-turn") as HTMLButtonElement;
 readyButton.addEventListener("click", () => room.send("readyToStart"));
 endTurnButton.addEventListener("click", () => {
   if (!isMovingUnit) {
@@ -253,9 +267,9 @@ endTurnButton.addEventListener("click", () => {
 });
 
 console.log("creating client");
-const client = new Colyseus.Client(`ws://${window.location.host}`);
+const client = new Client(`ws://${window.location.host}`);
 
-let room;
+let room: Room<Board>;
 const cachedReconnectionToken =
   window.localStorage.getItem("reconnectionToken");
 

@@ -5,7 +5,8 @@ import { Province } from "./Province";
 import { Unit } from "./Unit";
 import { Soldier } from "./units/Soldier";
 import { Pine } from "./units/Pine";
-import * as utils from "../../../public/utils";
+import { TileCoord } from "../../common/utils";
+import * as utils from "../../common/utils";
 import * as generation from "../../WorldGen";
 
 const HEX_NEIGHBORS = [
@@ -18,9 +19,9 @@ const HEX_NEIGHBORS = [
 ];
 
 export class Board extends Schema {
-  @type({ map: Tile }) tiles = new MapSchema<Tile>();
+  @type({ map: Tile }) tiles = new MapSchema<Tile, TileCoord>();
 
-  @type({ map: Unit }) units = new MapSchema<Unit>();
+  @type({ map: Unit }) units = new MapSchema<Unit, TileCoord>();
 
   @type({ map: Player }) players = new MapSchema<Player>();
 
@@ -35,7 +36,7 @@ export class Board extends Schema {
     super();
 
     for (const tileCoord of generation.generateMap()) {
-      this.tiles.set(tileCoord, new Tile());
+      this.tiles.set(tileCoord as TileCoord, new Tile());
     }
 
     this.units.set("3,-4", new Pine());
@@ -141,8 +142,8 @@ export class Board extends Schema {
   }
 
   moveUnit(src: [number, number], dest: [number, number]) {
-    const src_coord = src[0] + "," + src[1];
-    const dest_coord = dest[0] + "," + dest[1];
+    const src_coord = utils.hexToTileCoord(src);
+    const dest_coord = utils.hexToTileCoord(dest);
 
     let unit = this.units.get(src_coord);
 
@@ -286,7 +287,7 @@ export class Board extends Schema {
     let LargestProvinceTile = neighborTiles[0];
 
     for (const [q_d, r_d] of neighborTiles) {
-      const size = utils.getProvinceSizeAtTile([q_d, r_d]);
+      const size = utils.getProvinceSizeAtTile(null, [q_d, r_d]); // TODO replace null
       if (size <= 0) {
         //TODO error message, this shouldn't happen
         continue;
@@ -344,7 +345,8 @@ export class Board extends Schema {
     const tileCoord = utils.hexToTileCoord([q, r]);
     const newTile = this.tiles.get(tileCoord);
     const mergedProvince = newOwner.provinces.get(newTile.provinceName);
-    for (const [q_n, r_n] of utils.getHexNeighbors(newTile, [q, r])) {
+    for (const [q_n, r_n] of utils.getHexNeighbors(null, [q, r])) {
+      // TODO replace null
       const neighborTile = this.tiles.get(utils.hexToTileCoord([q_n, r_n]));
       if (neighborTile.ownerId === newTile.ownerId) {
         if (neighborTile.provinceName !== mergedProvince.name) {

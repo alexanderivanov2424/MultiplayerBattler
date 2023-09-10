@@ -1,3 +1,14 @@
+import { MapSchema } from "@colyseus/schema";
+import { Tile } from "../rooms/schema/Tile";
+import { Unit } from "../rooms/schema/Unit";
+import { Province } from "../rooms/schema/Province";
+
+export type AxialCoords = [q: number, r: number];
+export type TileCoord = `${number},${number}`;
+export type CoordMap<T> = MapSchema<T, TileCoord>;
+export type Tiles = MapSchema<Tile, TileCoord>;
+export type Units = MapSchema<Unit, TileCoord>;
+
 // clockwise order
 const HEX_NEIGHBORS = [
   [1, 0],
@@ -10,59 +21,67 @@ const HEX_NEIGHBORS = [
 
 const MAX_LEVEL = 4;
 
-export function hexToTileCoord([q, r]) {
-  return q + "," + r;
+export function hexToTileCoord([q, r]: AxialCoords): TileCoord {
+  return `${q},${r}`;
 }
 
-export function parseTileCoord(tileCoord) {
+export function parseTileCoord(tileCoord: TileCoord): AxialCoords {
   let [q, r] = tileCoord.split(",");
-  q = Number(q);
-  r = Number(r);
-  return [q, r];
+  return [Number(q), Number(r)];
 }
 
 export function captureTile(
-  tiles,
-  srcProvinceName,
-  playerProvinces,
-  [q, r],
-  playerId
+  tiles: Tiles,
+  srcProvinceName: string,
+  playerProvinces: MapSchema<Province>,
+  [q, r]: AxialCoords,
+  playerId: string
 ) {
   const tileCoord = hexToTileCoord([q, r]);
   const tile = tiles.get(tileCoord);
   if (!tile) {
     return;
   }
-  removeTileFromProvince();
-  addTileToProvince();
+  // removeTileFromProvince(...[]);
+  // addTileToProvince();
   // TODO: split provinces of the previous owner if necessary
 }
 
 // Check 6 neighbors of [q,r] and return any members of collection that are there.
-export function* getHexNeighbors(collection, [q, r]) {
+export function* getHexNeighbors<T>(
+  collection: CoordMap<T>,
+  [q, r]: AxialCoords
+): Generator<AxialCoords> {
   for (const [shift_q, shift_r] of HEX_NEIGHBORS) {
     const new_q = q + shift_q;
     const new_r = r + shift_r;
-    if (collection.get(new_q + "," + new_r)) {
+    if (collection.get(hexToTileCoord([new_q, new_r]))) {
       yield [new_q, new_r];
     }
   }
 }
 
-export function* getNeighbors(collection, [q, r]) {
+export function* getNeighbors<T>(
+  collection: CoordMap<T>,
+  [q, r]: AxialCoords
+): Generator<T> {
   for (const [shift_q, shift_r] of HEX_NEIGHBORS) {
     const new_q = q + shift_q;
     const new_r = r + shift_r;
-    const neighbor = collection.get(new_q + "," + new_r);
+    const neighbor = collection.get(hexToTileCoord([new_q, new_r]));
     if (neighbor) {
       yield neighbor;
     }
   }
 }
 
-function getTilesInMoveRange(tiles, moveSource, unit) {
+function getTilesInMoveRange(
+  tiles: Tiles,
+  moveSource: AxialCoords,
+  unit: Unit
+): AxialCoords[] {
   let tileCoordsInMoveRange = new Set();
-  let tilesInMoveRange = [];
+  let tilesInMoveRange: AxialCoords[] = [];
 
   let neighbors = [];
   let next_neighbors = [moveSource];
@@ -77,7 +96,7 @@ function getTilesInMoveRange(tiles, moveSource, unit) {
       tilesInMoveRange.push([q, r]);
       // We don't add neighbors for a tile that we don't own.
       // You can only move 1 tile outside of your own teritory.
-      if (tiles.get(q + "," + r).ownerId !== unit.ownerId) {
+      if (tiles.get(hexToTileCoord([q, r])).ownerId !== unit.ownerId) {
         continue;
       }
       for (const [new_q, new_r] of getHexNeighbors(tiles, [q, r])) {
@@ -93,8 +112,13 @@ function getTilesInMoveRange(tiles, moveSource, unit) {
   return tilesInMoveRange;
 }
 
-function isValidMoveTile(tiles, units, unit, moveDest) {
-  const destTileCoord = moveDest[0] + "," + moveDest[1];
+function isValidMoveTile(
+  tiles: Tiles,
+  units: Units,
+  unit: Unit,
+  moveDest: AxialCoords
+) {
+  const destTileCoord = hexToTileCoord(moveDest);
   const destTile = tiles.get(destTileCoord);
   if (!destTile) {
     return false;
@@ -104,7 +128,7 @@ function isValidMoveTile(tiles, units, unit, moveDest) {
     return !units.get(destTileCoord);
   }
   return [moveDest, ...getHexNeighbors(units, moveDest)].every(([q, r]) => {
-    const defendingUnit = units.get(q + "," + r);
+    const defendingUnit = units.get(hexToTileCoord([q, r]));
     return (
       !defendingUnit ||
       destTile.ownerId !== defendingUnit.ownerId ||
@@ -114,7 +138,12 @@ function isValidMoveTile(tiles, units, unit, moveDest) {
   });
 }
 
-export function getValidMoveTiles(tiles, units, moveSource, unit) {
+export function getValidMoveTiles(
+  tiles: Tiles,
+  units: Units,
+  moveSource: AxialCoords,
+  unit: Unit
+) {
   const validMoveTiles = getTilesInMoveRange(tiles, moveSource, unit).filter(
     (moveDest) => isValidMoveTile(tiles, units, unit, moveDest)
   );
@@ -125,10 +154,17 @@ export function getValidMoveTiles(tiles, units, moveSource, unit) {
   return validMoveTileCoords;
 }
 
-export function getProvinceSizeAtTile(tiles, [q, r]) {
-  return getAllConnectedTiles(tiles, [q, r]).length;
+export function getProvinceSizeAtTile(
+  tiles: Tiles,
+  [q, r]: AxialCoords
+): number {
+  // TODO: return getAllConnectedTiles(tiles, [q, r]).length;
+  return 0;
 }
 
-export function getAllConnectedTilesByProvince(tiles, [q, r]) {
+export function getAllConnectedTilesByProvince(
+  tiles: Tiles,
+  [q, r]: AxialCoords
+): AxialCoords[] {
   return [];
 }

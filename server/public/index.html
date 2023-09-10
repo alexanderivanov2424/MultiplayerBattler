@@ -30,7 +30,7 @@
         position: relative;
       }
 
-      #ready-button {
+      #ready {
         width: 100px;
         height: 50px;
         position: absolute;
@@ -39,7 +39,7 @@
         transform: translate(-50%, -50%);
       }
 
-      #end-turn-button {
+      #end-turn {
         width: 100px;
         height: 50px;
         position: absolute;
@@ -49,14 +49,14 @@
     </style>
     <script src="https://unpkg.com/colyseus.js@^0.15.0/dist/colyseus.js"></script>
     <script src="https://unpkg.com/@panzoom/panzoom@4.5.1/dist/panzoom.min.js"></script>
-    <script type="module" src="./index.js"></script>
+    <script type="module" src="./dist/index.js"></script>
   </head>
 
   <body>
     <div id="viewport">
       <canvas id="canvas" width="2000" height="2000" class="canvas"></canvas>
-      <button id="ready-button">Ready to Start!</button>
-      <button id="end-turn-button" style="display: none">End Turn</button>
+      <button id="ready">Ready to Start!</button>
+      <button id="end-turn" style="display: none">End Turn</button>
     </div>
     <div style="display: none">
       <img id="soldier1" src="images/soldier1.png" width="100" height="100" />
