@@ -10,7 +10,16 @@ export class Unit extends Schema {
 
   @type("number") level: number = 0;
 
-  constructor(unitName: string, owner?: Player, level: number = 0) {
+  @type("number") cost: number = 0;
+
+  @type("number") income: number = 0;
+
+  constructor(
+    unitName: string,
+    owner?: Player,
+    level: number = 0,
+    income: number = 0
+  ) {
     super();
     this.unitName = unitName;
     if (owner) {

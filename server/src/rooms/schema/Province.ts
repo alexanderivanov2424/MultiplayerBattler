@@ -9,7 +9,7 @@ export class Province extends Schema {
   @type({ map: Tile }) tiles = new MapSchema<Tile>();
 
   @type("number") money: number = 10;
-  @type("number") income: number = 2;
+  @type("number") income: number = 0;
 
   constructor(owner: Player, name: string) {
     super();

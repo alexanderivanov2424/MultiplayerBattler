@@ -98,13 +98,6 @@ function drawHexagon(x, y, borderColor, fillColor) {
   ctx.fill();
 }
 
-function parseTileCoord(tileCoord) {
-  let [q, r] = tileCoord.split(",");
-  q = Number(q);
-  r = Number(r);
-  return [q, r];
-}
-
 function getPixelFromTileCoord([q, r]) {
   let x = HORIZONTAL_UNIT * q;
   let y = VERTICAL_UNIT * (q / 2 + r);
@@ -112,7 +105,7 @@ function getPixelFromTileCoord([q, r]) {
 }
 
 function drawTileFromMap(tileCoord, tile) {
-  let [x, y] = getPixelFromTileCoord(parseTileCoord(tileCoord));
+  let [x, y] = getPixelFromTileCoord(utils.parseTileCoord(tileCoord));
   let [color, shadedColor] =
     PLAYER_TILE_COLORS[room.state.players.get(tile.ownerId)?.playerNumber] ||
     NEUTRAL_TILE_COLORS;
@@ -122,7 +115,7 @@ function drawTileFromMap(tileCoord, tile) {
 }
 
 function drawUnitFromMap(tileCoord, unit) {
-  let [x, y] = getPixelFromTileCoord(parseTileCoord(tileCoord));
+  let [x, y] = getPixelFromTileCoord(utils.parseTileCoord(tileCoord));
   let size = TILE_SIZE * 1.5;
 
   let image = TextureMap[unit.unitName] || IMG_SOLDIER1;
