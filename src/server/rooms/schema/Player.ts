@@ -11,16 +11,17 @@ export class Player extends Schema {
 
   nextProvinceNumber: number = 0;
 
-  constructor(playerId: string, playerNumber: number) {
-    super();
-    this.playerId = playerId;
-    this.playerNumber = playerNumber;
-    this.name = playerId;
+  static create(playerId: string, playerNumber: number) {
+    return new Player().assign({
+      playerId,
+      playerNumber,
+      name: playerId,
+    });
   }
 
   createProvince(): Province {
     const provinceName = this.nextProvinceNumber.toString();
-    const province = new Province(this, provinceName);
+    const province = Province.create(this, provinceName);
     this.provinces.set(provinceName, province);
     this.nextProvinceNumber++;
     return province;

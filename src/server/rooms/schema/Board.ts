@@ -12,13 +12,9 @@ import * as searchUtils from "server/SearchUtils";
 
 export class Board extends Schema {
   @type({ map: Tile }) tiles = new MapSchema<Tile, TileCoord>();
-
   @type({ map: Unit }) units = new MapSchema<Unit, TileCoord>();
-
   @type({ map: Player }) players = new MapSchema<Player>();
-
   @type("boolean") gameStarted = false;
-
   @type("number") currentPlayerNumber = 0;
 
   //TODO maybe remove
@@ -31,12 +27,12 @@ export class Board extends Schema {
       this.tiles.set(tileCoord as TileCoord, new Tile());
     }
 
-    this.units.set("3,-4", new Pine());
+    this.units.set("3,-4", Pine.create());
   }
 
   addPlayer(id: string) {
     const playerNumber = this.players.size;
-    this.players.set(id, new Player(id, playerNumber));
+    this.players.set(id, Player.create(id, playerNumber));
     this.playerOrder.push(id);
   }
 
@@ -80,7 +76,7 @@ export class Board extends Schema {
       const startingProvince = player.createProvince();
 
       this.addTileToProvince(startCoord, startingProvince);
-      this.units.set(startCoord, new Soldier(1, player));
+      this.units.set(startCoord, Soldier.create(1, player));
 
       // add a single neighbor tile
       for (let [q_n, r_n] of utils.getHexNeighbors(this.tiles, [q, r])) {

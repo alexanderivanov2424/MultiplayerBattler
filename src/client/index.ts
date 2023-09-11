@@ -1,7 +1,7 @@
 import { type Room, Client } from "colyseus.js";
 import Panzoom from "@panzoom/panzoom";
 
-import type { Board } from "server/rooms/schema/Board";
+import { Board } from "server/rooms/schema/Board";
 import type { Tile } from "server/rooms/schema/Tile";
 import type { Unit } from "server/rooms/schema/Unit";
 import type { Player } from "server/rooms/schema/Player";
@@ -279,7 +279,7 @@ let joinedRoom = false;
 
 if (cachedReconnectionToken) {
   try {
-    room = await client.reconnect(cachedReconnectionToken);
+    room = await client.reconnect(cachedReconnectionToken, Board);
     console.log("reconnected successfully", room);
     joinedRoom = true;
   } catch (e) {
@@ -288,7 +288,7 @@ if (cachedReconnectionToken) {
 }
 
 if (!joinedRoom) {
-  room = await client.joinOrCreate("game");
+  room = await client.joinOrCreate("game", {}, Board);
   console.log("joined successfully", room);
 }
 window.localStorage.setItem("reconnectionToken", room.reconnectionToken);

@@ -2,7 +2,10 @@ import { Unit } from "../Unit";
 import { Player } from "../Player";
 
 export class Castle extends Unit {
-  constructor(owner: Player) {
-    super("castle", owner, 0);
+  static create(owner: Player) {
+    return new Castle().assign({
+      unitName: "castle",
+      ownerId: owner.playerId,
+    });
   }
 }
