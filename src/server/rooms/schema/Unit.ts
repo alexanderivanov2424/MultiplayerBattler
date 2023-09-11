@@ -28,8 +28,4 @@ export class Unit extends Schema {
     this.level = level;
     this.income = income;
   }
-
-  getMovementRange() {
-    return this.moveRange;
-  }
 }

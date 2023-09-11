@@ -10,15 +10,6 @@ import * as utils from "common/utils";
 import * as generation from "server/WorldGen";
 import * as searchUtils from "server/SearchUtils";
 
-const HEX_NEIGHBORS = [
-  [1, 0],
-  [-1, 0],
-  [0, 1],
-  [0, -1],
-  [1, -1],
-  [-1, 1],
-];
-
 export class Board extends Schema {
   @type({ map: Tile }) tiles = new MapSchema<Tile, TileCoord>();
 
