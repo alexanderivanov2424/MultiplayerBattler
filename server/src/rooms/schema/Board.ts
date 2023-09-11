@@ -5,9 +5,10 @@ import { Province } from "./Province";
 import { Unit } from "./Unit";
 import { Soldier } from "./units/Soldier";
 import { Pine } from "./units/Pine";
-import { TileCoord } from "../../common/utils";
+import { TileCoord, AxialCoords } from "../../common/utils";
 import * as utils from "../../common/utils";
 import * as generation from "../../WorldGen";
+import * as searchUtils from "../../SearchUtils";
 
 const HEX_NEIGHBORS = [
   [1, 0],
@@ -77,64 +78,45 @@ export class Board extends Schema {
     this.players.forEach((player: Player) => {
       let q;
       let r;
-      let randCoord;
+      let startCoord;
       do {
         [q, r] = generation.getRandomCoord();
         q = Math.round(q * 0.75);
         r = Math.round(r * 0.75);
-        randCoord = utils.hexToTileCoord([q, r]);
-      } while (!this.tiles.get(randCoord) || this.units.get(randCoord));
-      this.units.set(utils.hexToTileCoord([q, r]), new Soldier(1, player));
-      const adjCoord = utils.hexToTileCoord([q + 1, r]);
-      if (this.tiles.get(adjCoord)) {
-        this.units.set(adjCoord, new Soldier(1, player));
+        startCoord = utils.hexToTileCoord([q, r]);
+      } while (!this.tiles.get(startCoord) || this.units.get(startCoord));
+
+      const startingProvince = player.createProvince();
+
+      this.addTileToProvince(startCoord, startingProvince);
+      this.units.set(startCoord, new Soldier(1, player));
+
+      // add a single neighbor tile
+      for (let [q_n, r_n] of utils.getHexNeighbors(this.tiles, [q, r])) {
+        let neighborCoord = utils.hexToTileCoord([q_n, r_n]);
+        if (this.tiles.get(neighborCoord).ownerId == "none") {
+          this.addTileToProvince(neighborCoord, startingProvince);
+          break;
+        }
       }
-      const province1 = player.createProvince();
-      const province2 = player.createProvince();
-      utils.captureTile(
-        this.tiles,
-        province1.name,
-        player.provinces,
-        [q, r],
-        player.playerId
-      );
-      utils.captureTile(
-        this.tiles,
-        province1.name,
-        player.provinces,
-        [q + 1, r],
-        player.playerId
-      );
-      utils.captureTile(
-        this.tiles,
-        province1.name,
-        player.provinces,
-        [q + 1, r + 1],
-        player.playerId
-      );
-      utils.captureTile(
-        this.tiles,
-        province2.name,
-        player.provinces,
-        [q - 1, r - 1],
-        player.playerId
-      );
-      utils.captureTile(
-        this.tiles,
-        province1.name,
-        player.provinces,
-        [q - 1, r + 1],
-        player.playerId
-      );
+      startingProvince.income = 1;
     });
   }
 
   startNextTurn() {
     this.currentPlayerNumber =
       (this.currentPlayerNumber + 1) % this.players.size;
-    if (this.currentPlayerNumber === 0) {
-      this.spreadTrees();
+    for (const [_, player] of this.players) {
+      if (player.playerNumber === this.currentPlayerNumber) {
+        for (const [_, province] of player.provinces) {
+          province.money += province.income;
+        }
+        break;
+      }
     }
+    // if (this.currentPlayerNumber === 0) {
+    //   this.spreadTrees();
+    // }
   }
 
   removePlayer(id: string) {
@@ -162,8 +144,9 @@ export class Board extends Schema {
     this.units.delete(src_coord);
 
     let srcTile = this.tiles.get(src_coord);
+    let destTile = this.tiles.get(dest_coord);
 
-    let previousOwnerId = this.tiles.get(dest_coord).ownerId;
+    let previousOwnerId = destTile.ownerId;
     let newOwnerId = srcTile.ownerId;
 
     let previousOwner = this.players.get(previousOwnerId);
@@ -173,28 +156,18 @@ export class Board extends Schema {
 
     this.removeUnitFromTile(dest);
     if (previousOwnerId !== newOwnerId && previousOwnerId !== "none") {
-      let destProvince = previousOwner.provinces.get(srcTile.provinceName);
+      let destProvince = previousOwner.provinces.get(destTile.provinceName);
       this.removeTileFromProvince(dest, destProvince, previousOwner);
 
-      this.checkProvinceSplit(dest, destProvince, previousOwnerId);
+      this.checkProvinceSplit(dest, destProvince, previousOwner);
     }
 
     if (previousOwnerId !== newOwnerId) {
-      this.addTileToProvince(dest, srcProvince);
+      this.addTileToProvince(dest_coord, srcProvince);
       this.checkProvinceMerge(dest, newOwner);
     }
 
     this.units.set(dest_coord, unit);
-
-    // const player = this.players.get(unit.ownerId);
-    // const srcProvinceName = this.tiles.get(src_coord).provinceName;
-    // utils.captureTile(
-    //   this.tiles,
-    //   srcProvinceName,
-    //   player.provinces,
-    //   dest,
-    //   unit.ownerId
-    // );
   }
 
   purchaseUnit([q, r]: [number, number], unit: Unit, province: Province) {
@@ -234,6 +207,8 @@ export class Board extends Schema {
     if (tileToRemove.ownerId != provinceOwner.playerId) {
       return;
     }
+    tileToRemove.ownerId = "none";
+    tileToRemove.provinceName = "none";
 
     province.tiles.delete(tileCoord);
     province.income -= 1;
@@ -241,16 +216,15 @@ export class Board extends Schema {
     // check if province is empty
     if (province.tiles.size === 1) {
       const [tileCoord] = [...province.tiles.keys()];
-      let [q_n, r_n] = utils.parseTileCoord(tileCoord);
-      this.handleOneTileProvince([q_n, r_n]);
+      this.handleOneTileProvince(tileCoord);
     }
     if (province.tiles.size === 0) {
       provinceOwner.provinces.delete(province.name);
     }
   }
 
-  handleOneTileProvince([q, r]: [number, number]) {
-    let tile = this.tiles.get(utils.hexToTileCoord([q, r]));
+  handleOneTileProvince(tileCoord: TileCoord) {
+    let tile = this.tiles.get(tileCoord);
     let provinceName = tile.provinceName;
     let province = this.players.get(tile.ownerId).provinces.get(provinceName);
     province.income = 0;
@@ -261,71 +235,86 @@ export class Board extends Schema {
   checkProvinceSplit(
     [q, r]: [number, number],
     previousProvince: Province,
-    previousOwnerId: string
+    previousOwner: Player
   ) {
     // check if the change in ownership of this tile has caused a province to split.
-    const neighborTiles = [];
 
-    const previousProvinceMoney = previousProvince.money;
+    let regions: Set<TileCoord>[] = [];
 
-    for (const [q_n, r_n] of utils.getHexNeighbors(this.tiles, [q, r])) {
-      const neighborTile = this.tiles.get(utils.hexToTileCoord([q_n, r_n]));
-      if (neighborTile.ownerId === previousOwnerId) {
-        neighborTiles.push([q_n, r_n]);
+    const provinceTiles = previousProvince.tiles;
+    for (let [q_n, r_n] of utils.getHexNeighbors(provinceTiles, [q, r])) {
+      let isNewRegion = true;
+      for (let region of regions) {
+        if (region.has(utils.hexToTileCoord([q_n, r_n]))) {
+          isNewRegion = false;
+          break;
+        }
+      }
+      if (!isNewRegion) {
+        continue;
+      }
+
+      const getNeighbors = ([q, r]: AxialCoords) =>
+        utils.getHexNeighbors(previousProvince.tiles, [q, r]);
+      const getHash = utils.hexToTileCoord;
+      let region = searchUtils.findConnectedHashed(
+        [q_n, r_n],
+        getNeighbors,
+        getHash
+      );
+      regions.push(region);
+    }
+
+    if (regions.length < 2) {
+      // No Split occured, we are done
+      return;
+    }
+
+    let largestRegion = regions[0];
+    let largestRegionSize = 0;
+    for (let region of regions) {
+      let size = region.size;
+      if (size > largestRegionSize) {
+        largestRegion = region;
+        largestRegionSize = size;
       }
     }
 
-    // get neighbors
-    // save the original province info
-    // delete original province
-    // for each neighbor:
-    //   if neighbor is still in the original province:
-    //     create a new province (flood-fills all connected)
-    // find largest province and assign province info
-
-    let largestProvinceSize = 0;
-    let LargestProvinceTile = neighborTiles[0];
-
-    for (const [q_d, r_d] of neighborTiles) {
-      const size = utils.getProvinceSizeAtTile(null, [q_d, r_d]); // TODO replace null
-      if (size <= 0) {
-        //TODO error message, this shouldn't happen
-        continue;
+    for (let region of regions) {
+      if (region === largestRegion) {
+        this.updateNewProvince(previousProvince, largestRegion);
+      } else {
+        const province = previousOwner.createProvince();
+        this.updateNewProvince(province, region);
       }
-      if (size === 1) {
-        this.handleOneTileProvince([q_d, r_d]);
-        continue;
+      if (region.size === 1) {
+        let tileCoord: TileCoord = region.values().next().value;
+        this.handleOneTileProvince(tileCoord);
       }
-      if (size > largestProvinceSize) {
-        largestProvinceSize = size;
-        LargestProvinceTile = [q_d, r_d];
-      }
-    }
-
-    for (let [q_d, r_d] of neighborTiles) {
-      if (q_d === LargestProvinceTile[0] && r_d === LargestProvinceTile[1]) {
-        continue;
-      }
-      this.startNewProvince([q_d, r_d]);
     }
   }
 
-  startNewProvince([q, r]: [number, number]) {
-    const tile = this.tiles.get(utils.hexToTileCoord([q, r]));
-    const province = this.players.get(tile.ownerId).createProvince();
-    const tilesHex = utils.getAllConnectedTilesByProvince(this.tiles, [q, r]);
-    for (const [q_c, r_c] of tilesHex) {
-      const tileCoord = utils.hexToTileCoord([q_c, r_c]);
-      const tileConnected = this.tiles.get(tileCoord);
-      province.tiles.set(tileCoord, tileConnected);
-      tileConnected.provinceName = province.name;
+  updateNewProvince(province: Province, region: Set<TileCoord>) {
+    province.tiles.clear();
+    province.income = 0;
+    for (const tileCoord of region) {
+      let tile = this.tiles.get(tileCoord);
+
+      tile.ownerId = province.ownerId;
+      tile.provinceName = province.name;
+      province.tiles.set(tileCoord, tile);
+      province.income += 1;
+
+      let unit = this.units.get(tileCoord);
+      if (unit) {
+        province.income += unit.income;
+      }
     }
 
     //TODO add castle
   }
 
-  addTileToProvince([q, r]: [number, number], province: Province) {
-    const tileCoord = utils.hexToTileCoord([q, r]);
+  addTileToProvince(tileCoord: TileCoord, province: Province) {
     const tileToAdd = this.tiles.get(tileCoord);
     const newOwner = this.players.get(province.ownerId);
 
@@ -345,8 +334,7 @@ export class Board extends Schema {
     const tileCoord = utils.hexToTileCoord([q, r]);
     const newTile = this.tiles.get(tileCoord);
     const mergedProvince = newOwner.provinces.get(newTile.provinceName);
-    for (const [q_n, r_n] of utils.getHexNeighbors(null, [q, r])) {
-      // TODO replace null
+    for (const [q_n, r_n] of utils.getHexNeighbors(this.tiles, [q, r])) {
       const neighborTile = this.tiles.get(utils.hexToTileCoord([q_n, r_n]));
       if (neighborTile.ownerId === newTile.ownerId) {
         if (neighborTile.provinceName !== mergedProvince.name) {
@@ -360,6 +348,10 @@ export class Board extends Schema {
           });
           newOwner.provinces.delete(provinceToMerge.name);
           mergedProvince.income += provinceToMerge.income;
+          mergedProvince.money += provinceToMerge.money;
+          if (provinceToMerge.tiles.size === 1) {
+            mergedProvince.income += 1;
+          }
         }
       }
     }

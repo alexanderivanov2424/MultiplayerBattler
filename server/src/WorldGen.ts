@@ -15,8 +15,8 @@ export function generateMap() {
   // addNoise(tileGrid, 0.3, false);
 
   // stepAutomata(tileGrid, 10);
-  addNoise(tileGrid, 0.1, true);
-  addBlobs(tileGrid, 10, 4);
+  //addNoise(tileGrid, 0.1, true);
+  addBlobs(tileGrid, 15, 4);
   stepAutomata(tileGrid, 3);
 
   return convertGridtoCoords(tileGrid);

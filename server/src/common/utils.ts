@@ -125,7 +125,7 @@ function isValidMoveTile(
   }
   if (destTile.ownerId === unit.ownerId) {
     //TODO combine units
-    return !units.get(destTileCoord);
+    return true;
   }
   return [moveDest, ...getHexNeighbors(units, moveDest)].every(([q, r]) => {
     const defendingUnit = units.get(hexToTileCoord([q, r]));
