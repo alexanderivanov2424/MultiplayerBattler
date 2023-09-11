@@ -1,13 +1,13 @@
 import { type Room, Client } from "colyseus.js";
 import Panzoom from "@panzoom/panzoom";
 
-import type { Board } from "../server/rooms/schema/Board";
-import type { Tile } from "../server/rooms/schema/Tile";
-import type { Unit } from "../server/rooms/schema/Unit";
-import type { Player } from "../server/rooms/schema/Player";
+import type { Board } from "server/rooms/schema/Board";
+import type { Tile } from "server/rooms/schema/Tile";
+import type { Unit } from "server/rooms/schema/Unit";
+import type { Player } from "server/rooms/schema/Player";
 
-import * as utils from "../common/utils";
-import { AxialCoords, TileCoord } from "../common/utils";
+import * as utils from "common/utils";
+import { AxialCoords, TileCoord } from "common/utils";
 
 const MAP_SIZE_X = 2000;
 const MAP_SIZE_Y = 2000;

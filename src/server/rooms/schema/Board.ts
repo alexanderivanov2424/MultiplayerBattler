@@ -1,14 +1,14 @@
-import { Schema, MapSchema, ArraySchema, type } from "@colyseus/schema";
+import { Schema, MapSchema, type } from "@colyseus/schema";
 import { Tile } from "./Tile";
 import { Player } from "./Player";
 import { Province } from "./Province";
 import { Unit } from "./Unit";
 import { Soldier } from "./units/Soldier";
 import { Pine } from "./units/Pine";
-import { TileCoord, AxialCoords } from "../../../common/utils";
-import * as utils from "../../../common/utils";
-import * as generation from "../../WorldGen";
-import * as searchUtils from "../../SearchUtils";
+import { TileCoord, AxialCoords } from "common/utils";
+import * as utils from "common/utils";
+import * as generation from "server/WorldGen";
+import * as searchUtils from "server/SearchUtils";
 
 const HEX_NEIGHBORS = [
   [1, 0],

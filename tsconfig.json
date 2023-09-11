@@ -11,7 +11,12 @@
     "experimentalDecorators": true,
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
-    "useDefineForClassFields": false
+    "useDefineForClassFields": false,
+    "paths": {
+      "client/*": ["./src/client/*"],
+      "common/*": ["./src/common/*"],
+      "server/*": ["./src/server/*"]
+    }
   },
   "include": ["src", "src/server/WorldGen.ts"]
 }

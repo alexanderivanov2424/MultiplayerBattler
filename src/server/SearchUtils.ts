@@ -1,5 +1,5 @@
 import { Tile } from "./rooms/schema/Tile";
-import * as utils from "../common/utils";
+import * as utils from "common/utils";
 
 // Utils and algorithms for HexGrid
 

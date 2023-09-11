@@ -1,7 +1,7 @@
 import { MapSchema } from "@colyseus/schema";
-import { Tile } from "../server/rooms/schema/Tile";
-import { Unit } from "../server/rooms/schema/Unit";
-import { Province } from "../server/rooms/schema/Province";
+import { Tile } from "server/rooms/schema/Tile";
+import { Unit } from "server/rooms/schema/Unit";
+import { Province } from "server/rooms/schema/Province";
 
 export type AxialCoords = [q: number, r: number];
 export type TileCoord = `${number},${number}`;

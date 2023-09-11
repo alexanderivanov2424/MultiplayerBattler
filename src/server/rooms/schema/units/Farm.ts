@@ -1,4 +1,3 @@
-import { Schema, type } from "@colyseus/schema";
 import { Unit } from "../Unit";
 import { Player } from "../Player";
 
