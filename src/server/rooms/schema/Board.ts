@@ -74,6 +74,7 @@ export class Board extends Schema {
       } while (!this.tiles.get(startCoord) || this.units.get(startCoord));
 
       const startingProvince = player.createProvince();
+      startingProvince.money = 10;
 
       this.addTileToProvince(startCoord, startingProvince);
       this.units.set(startCoord, Soldier.create(1, player));
