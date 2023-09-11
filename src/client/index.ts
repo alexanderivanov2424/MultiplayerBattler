@@ -1,10 +1,10 @@
 import { type Room, Client } from "colyseus.js";
 import Panzoom from "@panzoom/panzoom";
 
-import type { Board } from "../rooms/schema/Board";
-import type { Tile } from "../rooms/schema/Tile";
-import type { Unit } from "../rooms/schema/Unit";
-import type { Player } from "../rooms/schema/Player";
+import type { Board } from "../server/rooms/schema/Board";
+import type { Tile } from "../server/rooms/schema/Tile";
+import type { Unit } from "../server/rooms/schema/Unit";
+import type { Player } from "../server/rooms/schema/Player";
 
 import * as utils from "../common/utils";
 import { AxialCoords, TileCoord } from "../common/utils";

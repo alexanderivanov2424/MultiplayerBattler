@@ -1,7 +1,7 @@
 import { Schema, MapSchema, type } from "@colyseus/schema";
 import { Tile } from "./Tile";
 import { Player } from "./Player";
-import { TileCoord } from "../../common/utils";
+import { TileCoord } from "../../../common/utils";
 
 export class Province extends Schema {
   @type("string") ownerId: string;

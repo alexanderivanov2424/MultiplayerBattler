@@ -5,8 +5,8 @@ import { Province } from "./Province";
 import { Unit } from "./Unit";
 import { Soldier } from "./units/Soldier";
 import { Pine } from "./units/Pine";
-import { TileCoord, AxialCoords } from "../../common/utils";
-import * as utils from "../../common/utils";
+import { TileCoord, AxialCoords } from "../../../common/utils";
+import * as utils from "../../../common/utils";
 import * as generation from "../../WorldGen";
 import * as searchUtils from "../../SearchUtils";
 
