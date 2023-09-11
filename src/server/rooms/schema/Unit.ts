@@ -26,6 +26,7 @@ export class Unit extends Schema {
       this.ownerId = owner.playerId;
     }
     this.level = level;
+    this.income = income;
   }
 
   getMovementRange() {
