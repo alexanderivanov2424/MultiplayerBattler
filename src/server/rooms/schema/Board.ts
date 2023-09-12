@@ -3,10 +3,9 @@ import { Tile } from "./Tile";
 import { Player } from "./Player";
 import { Province } from "./Province";
 import { Unit } from "./Unit";
-import { Soldier } from "./units/Soldier";
-import { Pine } from "./units/Pine";
 import { TileCoord, AxialCoords } from "common/utils";
 import * as utils from "common/utils";
+import { UnitType } from "common/UnitData";
 import * as generation from "server/WorldGen";
 import * as searchUtils from "server/SearchUtils";
 
@@ -27,7 +26,7 @@ export class Board extends Schema {
       this.tiles.set(tileCoord as TileCoord, new Tile());
     }
 
-    this.units.set("3,-4", Pine.create());
+    this.units.set("3,-4", UnitType.Pine);
   }
 
   addPlayer(id: string) {
@@ -77,7 +76,7 @@ export class Board extends Schema {
       startingProvince.money = 10;
 
       this.addTileToProvince(startCoord, startingProvince);
-      this.units.set(startCoord, Soldier.create(1, player));
+      this.units.set(startCoord, UnitType.Soldier1));
 
       // add a single neighbor tile
       for (let [q_n, r_n] of utils.getHexNeighbors(this.tiles, [q, r])) {
