@@ -2,9 +2,7 @@ import { Schema, MapSchema, type } from "@colyseus/schema";
 import { Tile } from "./Tile";
 import { Player } from "./Player";
 import { Province } from "./Province";
-import { Unit } from "./Unit";
-import { Soldier } from "./units/Soldier";
-import { Pine } from "./units/Pine";
+import { Unit, Soldier1, Pine } from "./Unit";
 import { TileCoord, AxialCoords } from "common/utils";
 import * as utils from "common/utils";
 import * as generation from "server/WorldGen";
@@ -12,7 +10,6 @@ import * as searchUtils from "server/SearchUtils";
 
 export class Board extends Schema {
   @type({ map: Tile }) tiles = new MapSchema<Tile, TileCoord>();
-  @type({ map: Unit }) units = new MapSchema<Unit, TileCoord>();
   @type({ map: Player }) players = new MapSchema<Player>();
   @type("boolean") gameStarted = false;
   @type("number") currentPlayerNumber = 0;
@@ -27,7 +24,7 @@ export class Board extends Schema {
       this.tiles.set(tileCoord as TileCoord, new Tile());
     }
 
-    this.units.set("3,-4", Pine.create());
+    this.tiles.get("3,-4").unit = new Pine();
   }
 
   addPlayer(id: string) {
@@ -66,23 +63,25 @@ export class Board extends Schema {
       let q;
       let r;
       let startCoord;
+      let tile;
       do {
         [q, r] = generation.getRandomCoord();
         q = Math.round(q * 0.75);
         r = Math.round(r * 0.75);
         startCoord = utils.hexToTileCoord([q, r]);
-      } while (!this.tiles.get(startCoord) || this.units.get(startCoord));
+        tile = this.tiles.get(startCoord);
+      } while (!tile || tile.unit);
 
       const startingProvince = player.createProvince();
       startingProvince.money = 10;
 
       this.addTileToProvince(startCoord, startingProvince);
-      this.units.set(startCoord, Soldier.create(1, player));
+      tile.unit = new Soldier1();
 
       // add a single neighbor tile
       for (let [q_n, r_n] of utils.getHexNeighbors(this.tiles, [q, r])) {
         let neighborCoord = utils.hexToTileCoord([q_n, r_n]);
-        if (this.tiles.get(neighborCoord).ownerId == "none") {
+        if (!this.tiles.get(neighborCoord).ownerId) {
           this.addTileToProvince(neighborCoord, startingProvince);
           break;
         }
@@ -115,24 +114,22 @@ export class Board extends Schema {
     const src_coord = utils.hexToTileCoord(src);
     const dest_coord = utils.hexToTileCoord(dest);
 
-    let unit = this.units.get(src_coord);
+    let srcTile = this.tiles.get(src_coord);
+    let destTile = this.tiles.get(dest_coord);
+    if (!srcTile || !destTile) {
+      return;
+    }
 
+    let unit = srcTile.unit;
     if (!unit || unit.moveRange === 0) {
       return;
     }
     // TODO: possible optimization, only need to check if path exists
-    if (
-      !utils
-        .getValidMoveTiles(this.tiles, this.units, src, unit)
-        .has(dest_coord)
-    ) {
+    if (!utils.getValidMoveTiles(this.tiles, src).has(dest_coord)) {
       return;
     }
 
-    this.units.delete(src_coord);
-
-    let srcTile = this.tiles.get(src_coord);
-    let destTile = this.tiles.get(dest_coord);
+    srcTile.unit = null;
 
     let previousOwnerId = destTile.ownerId;
     let newOwnerId = srcTile.ownerId;
@@ -143,7 +140,7 @@ export class Board extends Schema {
     let srcProvince = newOwner.provinces.get(srcTile.provinceName);
 
     this.removeUnitFromTile(dest);
-    if (previousOwnerId !== newOwnerId && previousOwnerId !== "none") {
+    if (previousOwnerId !== newOwnerId && previousOwnerId) {
       let destProvince = previousOwner.provinces.get(destTile.provinceName);
       this.removeTileFromProvince(dest, destProvince, previousOwner);
 
@@ -155,25 +152,26 @@ export class Board extends Schema {
       this.checkProvinceMerge(dest, newOwner);
     }
 
-    this.units.set(dest_coord, unit);
+    destTile.unit = unit;
   }
 
   purchaseUnit([q, r]: [number, number], unit: Unit, province: Province) {
     const tileCoord = utils.hexToTileCoord([q, r]);
-    if (province.money - unit.cost >= 0) {
-      province.money -= unit.cost;
+    const unitCost = 0; // TODO: calculate unit cost
+    if (province.money - unitCost >= 0) {
+      province.money -= unitCost;
     } else {
       return;
     }
-    this.units.set(tileCoord, unit);
+    this.tiles.get(tileCoord).unit = unit;
   }
 
   removeUnitFromTile([q, r]: [number, number]) {
     const tileCoord = utils.hexToTileCoord([q, r]);
     const tile = this.tiles.get(tileCoord);
-    const unitToRemove = this.units.get(tileCoord);
+    const unitToRemove = tile.unit;
 
-    if (!unitToRemove || tile.ownerId === "none") {
+    if (!unitToRemove || !tile.ownerId) {
       // tile has no unit or owner, so nothing to remove
       return;
     }
@@ -195,8 +193,8 @@ export class Board extends Schema {
     if (tileToRemove.ownerId != provinceOwner.playerId) {
       return;
     }
-    tileToRemove.ownerId = "none";
-    tileToRemove.provinceName = "none";
+    tileToRemove.ownerId = null;
+    tileToRemove.provinceName = null;
 
     province.tiles.delete(tileCoord);
     province.income -= 1;
@@ -292,11 +290,7 @@ export class Board extends Schema {
       tile.provinceName = province.name;
       province.tiles.set(tileCoord, tile);
       province.income += 1;
-
-      let unit = this.units.get(tileCoord);
-      if (unit) {
-        province.income += unit.income;
-      }
+      province.income += tile.unit?.income ?? 0;
     }
 
     //TODO add castle
@@ -346,26 +340,20 @@ export class Board extends Schema {
   }
 
   spreadTrees() {
-    this.units.forEach((unit, coord) => {
-      if (unit.unitName === "pine") {
+    this.tiles.forEach((tile, coord) => {
+      const unit = tile.unit;
+      if (unit instanceof Pine) {
         const coordArray = utils.parseTileCoord(coord);
         for (const [q, r] of utils.getHexNeighbors(this.tiles, [
           coordArray[0],
           coordArray[1],
         ])) {
           const neighborCoord = utils.hexToTileCoord([q, r]);
-          if (
-            this.tiles.get(neighborCoord) &&
-            this.tiles.get(neighborCoord).ownerId !== "none" &&
-            !this.units.get(neighborCoord)
-          ) {
-            const player = this.players.get(
-              this.tiles.get(neighborCoord).ownerId
-            );
-            const province = player.provinces.get(
-              this.tiles.get(neighborCoord).provinceName
-            );
-            this.units.set(neighborCoord, unit);
+          const neighborTile = this.tiles.get(neighborCoord);
+          if (neighborTile && neighborTile.ownerId && !neighborTile.unit) {
+            const player = this.players.get(neighborTile.ownerId);
+            const province = player.provinces.get(neighborTile.provinceName);
+            neighborTile.unit = unit;
             province.income += unit.income;
           }
         }

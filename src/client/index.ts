@@ -47,13 +47,13 @@ const IMG_TOWER3 = document.getElementById("tower3") as HTMLImageElement;
 const IMG_PINE = document.getElementById("pine") as HTMLImageElement;
 
 const TextureMap: Partial<Record<string, HTMLImageElement>> = {
-  soldier1: IMG_SOLDIER1,
-  soldier2: IMG_SOLDIER2,
-  soldier3: IMG_SOLDIER3,
-  soldier4: IMG_SOLDIER4,
-  tower2: IMG_TOWER2,
-  tower3: IMG_TOWER3,
-  pine: IMG_PINE,
+  Soldier1: IMG_SOLDIER1,
+  Soldier2: IMG_SOLDIER2,
+  Soldier3: IMG_SOLDIER3,
+  Soldier4: IMG_SOLDIER4,
+  Tower2: IMG_TOWER2,
+  Tower3: IMG_TOWER3,
+  Pine: IMG_PINE,
 };
 
 // ################################
@@ -132,7 +132,7 @@ function drawUnitFromMap(tileCoord: TileCoord, unit: Unit) {
   let [x, y] = getPixelFromTileCoord(utils.parseTileCoord(tileCoord));
   let size = TILE_SIZE * 1.5;
 
-  let image = TextureMap[unit.unitName] || IMG_SOLDIER1;
+  let image = TextureMap[unit.constructor.name] || IMG_SOLDIER1;
 
   ctx.drawImage(
     image,
@@ -146,10 +146,9 @@ function drawUnitFromMap(tileCoord: TileCoord, unit: Unit) {
 function renderCanvas() {
   for (const [tileCoord, tile] of room.state.tiles) {
     drawTileFromMap(tileCoord, tile);
-  }
-
-  for (const [unitCoord, unit] of room.state.units) {
-    drawUnitFromMap(unitCoord, unit);
+    if (tile.unit) {
+      drawUnitFromMap(tileCoord, tile.unit);
+    }
   }
 }
 
@@ -211,8 +210,8 @@ function axialRound([q, r]: AxialCoords) {
   return [0 + q_i, 0 + r_i];
 }
 
-function getUnitInTile([q, r]: AxialCoords) {
-  return room.state.units.get(utils.hexToTileCoord([q, r]));
+function getTile([q, r]: AxialCoords) {
+  return room.state.tiles.get(utils.hexToTileCoord([q, r]));
 }
 
 function canvasClicked(event: MouseEvent) {
@@ -227,23 +226,19 @@ function canvasClicked(event: MouseEvent) {
 
   [q, r] = axialRound([q, r]);
 
-  let unit = getUnitInTile([q, r]);
+  let tile = getTile([q, r]);
+  let unit = tile.unit;
 
   if (
     unit &&
-    unit.ownerId === thisPlayer.playerId &&
+    tile.ownerId === thisPlayer.playerId &&
     unit.moveRange > 0 &&
     !isMovingUnit
   ) {
     isMovingUnit = true;
     moveSource = [q, r];
 
-    possibleMoveTiles = utils.getValidMoveTiles(
-      room.state.tiles,
-      room.state.units,
-      moveSource,
-      unit
-    );
+    possibleMoveTiles = utils.getValidMoveTiles(room.state.tiles, moveSource);
 
     render();
   } else if (isMovingUnit) {

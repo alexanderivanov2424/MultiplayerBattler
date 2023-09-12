@@ -77,15 +77,15 @@ export function* getNeighbors<T>(
 
 function getTilesInMoveRange(
   tiles: Tiles,
-  moveSource: AxialCoords,
-  unit: Unit
+  moveSource: AxialCoords
 ): AxialCoords[] {
   let tileCoordsInMoveRange = new Set();
   let tilesInMoveRange: AxialCoords[] = [];
 
   let neighbors = [];
   let next_neighbors = [moveSource];
-  let distance = unit.moveRange;
+  let srcTile = tiles.get(hexToTileCoord(moveSource));
+  let distance = srcTile.unit.moveRange;
 
   while (distance >= 0) {
     neighbors = next_neighbors;
@@ -96,7 +96,7 @@ function getTilesInMoveRange(
       tilesInMoveRange.push([q, r]);
       // We don't add neighbors for a tile that we don't own.
       // You can only move 1 tile outside of your own teritory.
-      if (tiles.get(hexToTileCoord([q, r])).ownerId !== unit.ownerId) {
+      if (tiles.get(hexToTileCoord([q, r])).ownerId !== srcTile.ownerId) {
         continue;
       }
       for (const [new_q, new_r] of getHexNeighbors(tiles, [q, r])) {
@@ -114,38 +114,33 @@ function getTilesInMoveRange(
 
 function isValidMoveTile(
   tiles: Tiles,
-  units: Units,
-  unit: Unit,
+  moveSource: AxialCoords,
   moveDest: AxialCoords
 ) {
-  const destTileCoord = hexToTileCoord(moveDest);
-  const destTile = tiles.get(destTileCoord);
+  const srcTile = tiles.get(hexToTileCoord(moveSource));
+  const destTile = tiles.get(hexToTileCoord(moveDest));
   if (!destTile) {
     return false;
   }
-  if (destTile.ownerId === unit.ownerId) {
+  if (destTile.ownerId === srcTile.ownerId) {
     //TODO combine units
     return true;
   }
-  return [moveDest, ...getHexNeighbors(units, moveDest)].every(([q, r]) => {
-    const defendingUnit = units.get(hexToTileCoord([q, r]));
+  const unit = srcTile.unit;
+  return [destTile, ...getNeighbors(tiles, moveDest)].every((tile) => {
+    const defendingUnit = tile.unit;
     return (
       !defendingUnit ||
-      destTile.ownerId !== defendingUnit.ownerId ||
+      destTile.ownerId !== tile.ownerId ||
       unit.level === MAX_LEVEL ||
       unit.level > defendingUnit.level
     );
   });
 }
 
-export function getValidMoveTiles(
-  tiles: Tiles,
-  units: Units,
-  moveSource: AxialCoords,
-  unit: Unit
-) {
-  const validMoveTiles = getTilesInMoveRange(tiles, moveSource, unit).filter(
-    (moveDest) => isValidMoveTile(tiles, units, unit, moveDest)
+export function getValidMoveTiles(tiles: Tiles, moveSource: AxialCoords) {
+  const validMoveTiles = getTilesInMoveRange(tiles, moveSource).filter(
+    (moveDest) => isValidMoveTile(tiles, moveSource, moveDest)
   );
   let validMoveTileCoords = new Set();
   for (const [q, r] of validMoveTiles) {
