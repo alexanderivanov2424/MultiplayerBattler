@@ -11,7 +11,6 @@ import * as searchUtils from "server/SearchUtils";
 
 export class Board extends Schema {
   @type({ map: Tile }) tiles = new MapSchema<Tile, TileCoord>();
-  @type({ map: Unit }) units = new MapSchema<Unit, TileCoord>();
   @type({ map: Player }) players = new MapSchema<Player>();
   @type("boolean") gameStarted = false;
   @type("number") currentPlayerNumber = 0;
