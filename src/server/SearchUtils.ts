@@ -14,23 +14,22 @@ export function findPath(
   }
 }
 
-export function findConnectedHashed<T, Hashable>(
+export function findConnected<T>(
   src: T,
-  getNeighbors: (node: T) => Iterable<T>,
-  getHash: (node: T) => Hashable
+  getNeighbors: (node: T) => Iterable<T>
 ) {
-  let checked = new Set<Hashable>();
+  let checked = new Set<T>();
   let frontier = [src];
 
   while (frontier.length > 0) {
     let node = frontier.pop();
     for (let neighbor of getNeighbors(node)) {
-      if (checked.has(getHash(neighbor))) {
+      if (checked.has(neighbor)) {
         continue;
       }
       frontier.push(neighbor);
     }
-    checked.add(getHash(node));
+    checked.add(node);
   }
   return checked;
 }

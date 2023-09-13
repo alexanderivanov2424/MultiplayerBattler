@@ -5,7 +5,7 @@ export class WarRoom extends Room<Board> {
   maxClients = 4;
 
   onCreate(options: any) {
-    this.setState(new Board());
+    this.setState(Board.create());
     console.log("set state");
 
     this.onMessage("move", (client, [src, dest]) => {

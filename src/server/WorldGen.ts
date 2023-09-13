@@ -140,7 +140,7 @@ function stepAutomata(grid: number[][], steps: number) {
 }
 
 function convertGridtoCoords(grid: number[][]) {
-  let tiles = [];
+  let tiles: [number, number][] = [];
   for (let i = 0; i < grid.length; i++) {
     for (let j = 0; j < grid[0].length; j++) {
       if (grid[i][j] === 0) {
@@ -148,7 +148,7 @@ function convertGridtoCoords(grid: number[][]) {
       }
       let q = i + GRID_Q_START;
       let r = j + GRID_R_START + getGridRShift(q);
-      tiles.push(q + "," + r);
+      tiles.push([q, r]);
     }
   }
   return tiles;

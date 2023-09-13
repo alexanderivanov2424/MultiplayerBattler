@@ -7,7 +7,7 @@ import type { Unit } from "server/rooms/schema/Unit";
 import type { Player } from "server/rooms/schema/Player";
 
 import * as utils from "common/utils";
-import { AxialCoords, TileCoord } from "common/utils";
+import { AxialCoords } from "common/utils";
 
 const MAP_SIZE_X = 2000;
 const MAP_SIZE_Y = 2000;
@@ -83,9 +83,8 @@ canvas.addEventListener("click", canvasClicked);
 // ################################
 
 let thisPlayer: Player;
-let isMovingUnit = false;
-let moveSource: AxialCoords = [0, 0];
-let possibleMoveTiles = new Set();
+let src: Tile;
+let possibleMoves = new Set();
 
 // ################################
 
@@ -112,24 +111,23 @@ function drawHexagon(
   ctx.fill();
 }
 
-function getPixelFromTileCoord([q, r]: AxialCoords) {
+function hexToPixelCoord([q, r]: AxialCoords) {
   let x = HORIZONTAL_UNIT * q;
   let y = VERTICAL_UNIT * (q / 2 + r);
   return [x, y];
 }
 
-function drawTileFromMap(tileCoord: TileCoord, tile: Tile) {
-  let [x, y] = getPixelFromTileCoord(utils.parseTileCoord(tileCoord));
+function drawTileFromMap(tile: Tile) {
+  let [x, y] = hexToPixelCoord(tile.coord);
   let [color, shadedColor] =
     PLAYER_TILE_COLORS[room.state.players.get(tile.ownerId)?.playerNumber] ||
     NEUTRAL_TILE_COLORS;
-  let fillColor =
-    isMovingUnit && !possibleMoveTiles.has(tileCoord) ? shadedColor : color;
+  let fillColor = src && !possibleMoves.has(tile) ? shadedColor : color;
   drawHexagon(x, y, TILE_BORDER, fillColor);
 }
 
-function drawUnitFromMap(tileCoord: TileCoord, unit: Unit) {
-  let [x, y] = getPixelFromTileCoord(utils.parseTileCoord(tileCoord));
+function drawUnitFromMap(tile: Tile, unit: Unit) {
+  let [x, y] = hexToPixelCoord(tile.coord);
   let size = TILE_SIZE * 1.5;
 
   let image = TextureMap[unit.constructor.name] || IMG_SOLDIER1;
@@ -144,10 +142,10 @@ function drawUnitFromMap(tileCoord: TileCoord, unit: Unit) {
 }
 
 function renderCanvas() {
-  for (const [tileCoord, tile] of room.state.tiles) {
-    drawTileFromMap(tileCoord, tile);
+  for (const tile of room.state.tiles) {
+    drawTileFromMap(tile);
     if (tile.unit) {
-      drawUnitFromMap(tileCoord, tile.unit);
+      drawUnitFromMap(tile, tile.unit);
     }
   }
 }
@@ -210,10 +208,6 @@ function axialRound([q, r]: AxialCoords) {
   return [0 + q_i, 0 + r_i];
 }
 
-function getTile([q, r]: AxialCoords) {
-  return room.state.tiles.get(utils.hexToTileCoord([q, r]));
-}
-
 function canvasClicked(event: MouseEvent) {
   if (!isPlayersTurn()) {
     return;
@@ -226,26 +220,23 @@ function canvasClicked(event: MouseEvent) {
 
   [q, r] = axialRound([q, r]);
 
-  let tile = getTile([q, r]);
-  let unit = tile.unit;
+  let tile = room.state.tiles.get([q, r]);
+  let unit = tile?.unit;
 
   if (
     unit &&
     tile.ownerId === thisPlayer.playerId &&
     unit.moveRange > 0 &&
-    !isMovingUnit
+    !src
   ) {
-    isMovingUnit = true;
-    moveSource = [q, r];
-
-    possibleMoveTiles = utils.getValidMoveTiles(room.state.tiles, moveSource);
-
+    src = tile;
+    possibleMoves = utils.getValidMoves(room.state.tiles, src);
     render();
-  } else if (isMovingUnit) {
-    isMovingUnit = false;
-    if (moveSource[0] != q || moveSource[1] != r) {
-      room.send("move", [moveSource, [q, r]]);
+  } else if (src) {
+    if (tile && tile !== src) {
+      room.send("move", [src.coord, tile.coord]);
     }
+    src = null;
     render();
   }
 }
@@ -258,7 +249,7 @@ const readyButton = document.getElementById("ready") as HTMLButtonElement;
 const endTurnButton = document.getElementById("end-turn") as HTMLButtonElement;
 readyButton.addEventListener("click", () => room.send("readyToStart"));
 endTurnButton.addEventListener("click", () => {
-  if (!isMovingUnit) {
+  if (!src) {
     room.send("endTurn");
   }
 });
@@ -288,7 +279,8 @@ if (!joinedRoom) {
 }
 window.localStorage.setItem("reconnectionToken", room.reconnectionToken);
 
-room.onStateChange(() => {
+room.onStateChange((state) => {
+  state.tiles.map = state._tiles;
   render();
 });
 

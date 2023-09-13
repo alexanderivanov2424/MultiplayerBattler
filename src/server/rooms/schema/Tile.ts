@@ -13,11 +13,7 @@ export class Tile extends Schema {
   @type("string") provinceName: string = null; // key into owner's provinces map or null if not owned
   @type(Unit) unit: Unit = null;
 
-  q: number;
-  r: number;
-  get coord(): AxialCoords {
-    return [this.q, this.r];
-  }
+  coord: AxialCoords;
 }
 
 export class TileMap {
@@ -32,24 +28,22 @@ export class TileMap {
     return this.map.clear();
   }
 
-  get([q, r]: AxialCoords) {
-    const tile = this.map.get(hexToTileCoord([q, r]));
+  get(coord: AxialCoords) {
+    const tile = this.map.get(hexToTileCoord(coord));
     if (tile) {
-      tile.q = q;
-      tile.r = r;
+      tile.coord = coord;
     }
     return tile;
   }
 
-  set([q, r]: AxialCoords, tile: Tile) {
-    tile.q = q;
-    tile.r = r;
-    this.map.set(hexToTileCoord([q, r]), tile);
+  set(coord: AxialCoords, tile: Tile) {
+    tile.coord = coord;
+    this.map.set(hexToTileCoord(coord), tile);
     return this;
   }
 
-  delete([q, r]: AxialCoords) {
-    return this.map.delete(hexToTileCoord([q, r]));
+  delete(coord: AxialCoords) {
+    return this.map.delete(hexToTileCoord(coord));
   }
 
   get size() {
@@ -58,20 +52,13 @@ export class TileMap {
 
   *[Symbol.iterator](): Generator<Tile> {
     for (const [coord, tile] of this.map) {
-      const [q, r] = parseTileCoord(coord);
-      tile.q = q;
-      tile.r = r;
+      tile.coord = parseTileCoord(coord);
       yield tile;
     }
   }
 
-  *neighbors(node: AxialCoords | Tile): Generator<Tile> {
-    let q, r;
-    if (node instanceof Tile) {
-      [q, r] = [node.q, node.r];
-    } else {
-      [q, r] = node;
-    }
+  *neighbors(node: Tile): Generator<Tile> {
+    const [q, r] = node.coord;
     for (const [shift_q, shift_r] of HEX_NEIGHBORS) {
       const coord: AxialCoords = [q + shift_q, r + shift_r];
       const neighbor = this.get(coord);
