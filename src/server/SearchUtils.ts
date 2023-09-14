@@ -6,8 +6,8 @@ export function findPath(
   getNeighbors: (node: any) => any[],
   heuristic: (node: any) => number
 ) {
-  let checkedTiles = new Set();
-  let frontier: [number, [number, number]][] = []; // [cost, [q, r]]
+  const checkedTiles = new Set();
+  const frontier: [number, [number, number]][] = []; // [cost, [q, r]]
 
   while (frontier.length > 0) {
     let [cost, [q, r]] = frontier.pop();
@@ -18,12 +18,12 @@ export function findConnected<T>(
   src: T,
   getNeighbors: (node: T) => Iterable<T>
 ) {
-  let checked = new Set<T>();
-  let frontier = [src];
+  const checked = new Set<T>();
+  const frontier = [src];
 
   while (frontier.length > 0) {
-    let node = frontier.pop();
-    for (let neighbor of getNeighbors(node)) {
+    const node = frontier.pop();
+    for (const neighbor of getNeighbors(node)) {
       if (checked.has(neighbor)) {
         continue;
       }

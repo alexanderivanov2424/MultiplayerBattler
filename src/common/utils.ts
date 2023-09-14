@@ -20,21 +20,17 @@ export function hexToTileCoord([q, r]: AxialCoords): TileCoord {
 }
 
 export function parseTileCoord(tileCoord: TileCoord): AxialCoords {
-  let [q, r] = tileCoord.split(",");
+  const [q, r] = tileCoord.split(",");
   return [Number(q), Number(r)];
 }
 
 function getMovesInRange(tiles: TileMap, src: Tile) {
-  let tilesInMoveRange: Set<Tile> = new Set();
+  const tilesInMoveRange: Set<Tile> = new Set();
+  const distance = src.unit.moveRange;
+  let frontier = [src];
 
-  let frontier = [];
-  let next_neighbors = [src];
-  let distance = src.unit.moveRange;
-
-  while (distance >= 0) {
-    frontier = next_neighbors;
-    next_neighbors = [];
-
+  for (let i = 0; i <= distance; i++) {
+    const nextFrontier = [];
     for (const tile of frontier) {
       tilesInMoveRange.add(tile);
       // We don't add neighbors for a tile that we don't own.
@@ -43,13 +39,12 @@ function getMovesInRange(tiles: TileMap, src: Tile) {
         continue;
       }
       for (const neighbor of tiles.neighbors(tile)) {
-        if (tilesInMoveRange.has(neighbor)) {
-          continue;
+        if (!tilesInMoveRange.has(neighbor)) {
+          nextFrontier.push(neighbor);
         }
-        next_neighbors.push(neighbor);
       }
     }
-    distance--;
+    frontier = nextFrontier;
   }
 
   return tilesInMoveRange;

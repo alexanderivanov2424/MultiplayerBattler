@@ -5,7 +5,7 @@ const GRID_R_START = -10;
 const GRID_R_SIZE = 21;
 
 export function generateMap() {
-  let tileGrid = makeEmptyGrid(GRID_Q_SIZE, GRID_R_SIZE);
+  const tileGrid = makeEmptyGrid(GRID_Q_SIZE, GRID_R_SIZE);
 
   // addNoise(tileGrid, 0.8, false);
 
@@ -23,7 +23,7 @@ export function generateMap() {
 }
 
 function makeEmptyGrid(qSize: number, rSize: number) {
-  let tileGrid: number[][] = [];
+  const tileGrid: number[][] = [];
   for (let i = 0; i < qSize + 1; i++) {
     tileGrid.push([]);
     for (let j = 0; j < rSize + 1; j++) {
@@ -48,15 +48,15 @@ function addBlobs(grid: number[][], num: number, size: number) {
 }
 
 function addBlob(grid: number[][], size: number) {
-  let shift_i = Math.random() * grid.length;
-  let shift_j = Math.random() * grid[0].length;
+  const shift_i = Math.random() * grid.length;
+  const shift_j = Math.random() * grid[0].length;
 
-  let inset = 3;
+  const inset = 3;
 
-  let center_i = Math.random() * (grid.length - inset * 2) + inset;
-  let center_j = Math.random() * (grid[0].length - inset * 2) + inset;
+  const center_i = Math.random() * (grid.length - inset * 2) + inset;
+  const center_j = Math.random() * (grid[0].length - inset * 2) + inset;
 
-  let fall_off = 4;
+  const fall_off = 4;
 
   for (let i = 0; i < grid.length; i++) {
     for (let j = 0; j < grid[0].length; j++) {
@@ -73,7 +73,7 @@ function addBlob(grid: number[][], size: number) {
       );
 
       //distance to edge
-      let distance_to_edge = Math.min(
+      const distance_to_edge = Math.min(
         i,
         grid.length - i - 1,
         j,
@@ -102,7 +102,7 @@ function getValueSafe(grid: number[][], q: number, r: number, d: number) {
 }
 
 function getNeighborsOffsets(distance: number) {
-  let neighbors: number[] = [];
+  const neighbors: number[] = [];
   //TODO actually implement this (not trivial)
   // need this for more customizable stepAutomata func
   return neighbors;
@@ -118,7 +118,7 @@ function stepAutomata(grid: number[][], steps: number) {
     [0, -1],
   ];
   for (let step = 0; step < steps; step++) {
-    let grid_next = makeEmptyGrid(grid.length, grid[0].length);
+    const grid_next = makeEmptyGrid(grid.length, grid[0].length);
 
     for (let i = 0; i < grid.length; i++) {
       for (let j = 0; j < grid[0].length; j++) {
@@ -140,14 +140,14 @@ function stepAutomata(grid: number[][], steps: number) {
 }
 
 function convertGridtoCoords(grid: number[][]) {
-  let tiles: [number, number][] = [];
+  const tiles: [number, number][] = [];
   for (let i = 0; i < grid.length; i++) {
     for (let j = 0; j < grid[0].length; j++) {
       if (grid[i][j] === 0) {
         continue;
       }
-      let q = i + GRID_Q_START;
-      let r = j + GRID_R_START + getGridRShift(q);
+      const q = i + GRID_Q_START;
+      const r = j + GRID_R_START + getGridRShift(q);
       tiles.push([q, r]);
     }
   }
@@ -159,8 +159,8 @@ function getGridRShift(q: number) {
 }
 
 export function getRandomCoord() {
-  let q = Math.floor(Math.random() * (GRID_Q_SIZE + 1)) + GRID_Q_START;
-  let r =
+  const q = Math.floor(Math.random() * (GRID_Q_SIZE + 1)) + GRID_Q_START;
+  const r =
     Math.floor(Math.random() * (GRID_R_SIZE + 1)) +
     GRID_R_START +
     getGridRShift(q);

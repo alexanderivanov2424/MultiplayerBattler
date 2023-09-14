@@ -96,8 +96,8 @@ function drawHexagon(
 ) {
   ctx.beginPath();
   for (let i = 0; i < VERTICES.length; i++) {
-    let xx = x + VERTICES[i][0] + MAP_SHIFT_X;
-    let yy = y + VERTICES[i][1] + MAP_SHIFT_Y;
+    const xx = x + VERTICES[i][0] + MAP_SHIFT_X;
+    const yy = y + VERTICES[i][1] + MAP_SHIFT_Y;
 
     ctx.lineTo(xx, yy);
   }
@@ -112,25 +112,25 @@ function drawHexagon(
 }
 
 function hexToPixelCoord([q, r]: AxialCoords) {
-  let x = HORIZONTAL_UNIT * q;
-  let y = VERTICAL_UNIT * (q / 2 + r);
+  const x = HORIZONTAL_UNIT * q;
+  const y = VERTICAL_UNIT * (q / 2 + r);
   return [x, y];
 }
 
 function drawTileFromMap(tile: Tile) {
-  let [x, y] = hexToPixelCoord(tile.coord);
-  let [color, shadedColor] =
+  const [x, y] = hexToPixelCoord(tile.coord);
+  const [color, shadedColor] =
     PLAYER_TILE_COLORS[room.state.players.get(tile.ownerId)?.playerNumber] ||
     NEUTRAL_TILE_COLORS;
-  let fillColor = src && !possibleMoves.has(tile) ? shadedColor : color;
+  const fillColor = src && !possibleMoves.has(tile) ? shadedColor : color;
   drawHexagon(x, y, TILE_BORDER, fillColor);
 }
 
 function drawUnitFromMap(tile: Tile, unit: Unit) {
-  let [x, y] = hexToPixelCoord(tile.coord);
-  let size = TILE_SIZE * 1.5;
+  const [x, y] = hexToPixelCoord(tile.coord);
+  const size = TILE_SIZE * 1.5;
 
-  let image = TextureMap[unit.constructor.name] || IMG_SOLDIER1;
+  const image = TextureMap[unit.constructor.name] || IMG_SOLDIER1;
 
   ctx.drawImage(
     image,
@@ -187,16 +187,16 @@ function render() {
   });
 }
 
-function axialRound([q, r]: AxialCoords) {
-  let s = -q - r; // convert to cube coords
+function axialRound([q, r]: AxialCoords): AxialCoords {
+  const s = -q - r; // convert to cube coords
 
   let q_i = Math.round(q);
   let r_i = Math.round(r);
   let s_i = Math.round(s);
 
-  let q_diff = Math.abs(q_i - q);
-  let r_diff = Math.abs(r_i - r);
-  let s_diff = Math.abs(s_i - s);
+  const q_diff = Math.abs(q_i - q);
+  const r_diff = Math.abs(r_i - r);
+  const s_diff = Math.abs(s_i - s);
 
   if (q_diff > r_diff && q_diff > s_diff) {
     q_i = -r_i - s_i;
@@ -212,16 +212,14 @@ function canvasClicked(event: MouseEvent) {
   if (!isPlayersTurn()) {
     return;
   }
-  let x = event.offsetX - MAP_SHIFT_X;
-  let y = event.offsetY - MAP_SHIFT_Y;
+  const x = event.offsetX - MAP_SHIFT_X;
+  const y = event.offsetY - MAP_SHIFT_Y;
 
-  let q = x / HORIZONTAL_UNIT;
-  let r = -x / (3.0 * TILE_SIZE) + y / VERTICAL_UNIT;
+  const q = x / HORIZONTAL_UNIT;
+  const r = -x / (3.0 * TILE_SIZE) + y / VERTICAL_UNIT;
 
-  [q, r] = axialRound([q, r]);
-
-  let tile = room.state.tiles.get([q, r]);
-  let unit = tile?.unit;
+  const tile = room.state.tiles.get(axialRound([q, r]));
+  const unit = tile?.unit;
 
   if (
     unit &&

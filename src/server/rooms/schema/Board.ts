@@ -60,9 +60,7 @@ export class Board extends Schema {
     // TODO assign players to colors / provinces
     // Generate map
     this.players.forEach((player: Player) => {
-      let q;
-      let r;
-      let tile;
+      let q, r, tile;
       do {
         [q, r] = generation.getRandomCoord();
         q = Math.round(q * 0.75);
@@ -108,13 +106,13 @@ export class Board extends Schema {
   }
 
   moveUnit(srcCoord: AxialCoords, destCoord: AxialCoords) {
-    let src = this.tiles.get(srcCoord);
-    let dest = this.tiles.get(destCoord);
+    const src = this.tiles.get(srcCoord);
+    const dest = this.tiles.get(destCoord);
     if (!src || !dest) {
       return;
     }
 
-    let unit = src.unit;
+    const unit = src.unit;
     if (!unit || unit.moveRange === 0) {
       return;
     }
@@ -125,19 +123,18 @@ export class Board extends Schema {
 
     src.unit = null;
 
-    let previousOwnerId = dest.ownerId;
-    let newOwnerId = src.ownerId;
+    const previousOwnerId = dest.ownerId;
+    const newOwnerId = src.ownerId;
 
-    let previousOwner = this.players.get(previousOwnerId);
-    let newOwner = this.players.get(newOwnerId);
+    const previousOwner = this.players.get(previousOwnerId);
+    const newOwner = this.players.get(newOwnerId);
 
-    let srcProvince = newOwner.provinces.get(src.provinceName);
+    const srcProvince = newOwner.provinces.get(src.provinceName);
 
     this.removeUnitFromTile(dest);
     if (previousOwnerId !== newOwnerId && previousOwnerId) {
-      let destProvince = previousOwner.provinces.get(dest.provinceName);
+      const destProvince = previousOwner.provinces.get(dest.provinceName);
       this.removeTileFromProvince(dest, destProvince, previousOwner);
-
       this.checkProvinceSplit(dest, destProvince, previousOwner);
     }
 
@@ -195,8 +192,8 @@ export class Board extends Schema {
   }
 
   handleOneTileProvince(tile: Tile) {
-    let provinceName = tile.provinceName;
-    let province = this.players.get(tile.ownerId).provinces.get(provinceName);
+    const provinceName = tile.provinceName;
+    const province = this.players.get(tile.ownerId).provinces.get(provinceName);
     province.income = 0;
     province.money = 0;
     // TODO careful about this being reset.
@@ -209,22 +206,15 @@ export class Board extends Schema {
   ) {
     // check if the change in ownership of this tile has caused a province to split.
 
-    let regions: Set<Tile>[] = [];
+    const regions: Set<Tile>[] = [];
 
     for (const neighbor of previousProvince.tiles.neighbors(tile)) {
-      let isNewRegion = true;
-      for (let region of regions) {
-        if (region.has(neighbor)) {
-          isNewRegion = false;
-          break;
-        }
-      }
-      if (!isNewRegion) {
+      if (regions.some((region) => region.has(neighbor))) {
         continue;
       }
 
       const getNeighbors = previousProvince.tiles.neighbors;
-      let region = searchUtils.findConnected(neighbor, getNeighbors);
+      const region = searchUtils.findConnected(neighbor, getNeighbors);
       regions.push(region);
     }
 
@@ -233,17 +223,12 @@ export class Board extends Schema {
       return;
     }
 
-    let largestRegion = regions[0];
-    let largestRegionSize = 0;
-    for (let region of regions) {
-      let size = region.size;
-      if (size > largestRegionSize) {
-        largestRegion = region;
-        largestRegionSize = size;
-      }
-    }
+    const largestRegion = regions.reduce(
+      (r1, r2) => (r2.size > r1.size ? r2 : r1),
+      regions[0]
+    );
 
-    for (let region of regions) {
+    for (const region of regions) {
       if (region === largestRegion) {
         this.updateNewProvince(previousProvince, largestRegion);
       } else {
