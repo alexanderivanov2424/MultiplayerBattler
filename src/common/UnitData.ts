@@ -12,9 +12,9 @@ export enum UnitType {
   Tower3,
 }
 
-export type NONE_UNIT = -1;
+export type UNIT_NONE = -1;
 
-export type OptionalUnitType = NONE_UNIT | UnitType;
+export type OptionalUnitType = UNIT_NONE | UnitType;
 
 const UNIT_CASTLE = { moveRange: 0, cost: 0, level: 1, income: 0 };
 const UNIT_FARM = { moveRange: 0, cost: 10, level: 0, income: 4 };
@@ -28,7 +28,7 @@ const UNIT_SOLDIER4 = { moveRange: 4, cost: 40, level: 4, income: -36 };
 const UNIT_TOWER2 = { moveRange: 0, cost: 15, level: 2, income: -1 };
 const UNIT_TOWER3 = { moveRange: 0, cost: 35, level: 3, income: -6 };
 
-interface UnitData {
+export interface UnitData {
   moveRange: number;
   cost: number;
   level: number;
@@ -49,18 +49,22 @@ const UNIT_DATA_MAP: Record<UnitType, UnitData> = {
   [UnitType.Tower3]: UNIT_TOWER3,
 };
 
+export function getUnitData(unitType: UnitType) {
+  return UNIT_DATA_MAP[unitType];
+}
+
 export function getUnitMoveRange(unitType: UnitType) {
-  UNIT_DATA_MAP[unitType].moveRange;
+  return UNIT_DATA_MAP[unitType].moveRange;
 }
 
 export function getUnitCost(unitType: UnitType) {
-  UNIT_DATA_MAP[unitType].cost;
+  return UNIT_DATA_MAP[unitType].cost;
 }
 
 export function getUnitLevel(unitType: UnitType) {
-  UNIT_DATA_MAP[unitType].level;
+  return UNIT_DATA_MAP[unitType].level;
 }
 
 export function getUnitIncome(unitType: UnitType) {
-  UNIT_DATA_MAP[unitType].income;
+  return UNIT_DATA_MAP[unitType].income;
 }

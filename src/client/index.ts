@@ -8,6 +8,8 @@ import type { Player } from "server/rooms/schema/Player";
 
 import * as utils from "common/utils";
 import { AxialCoords, TileCoord } from "common/utils";
+import * as UnitData from "common/UnitData";
+import { OptionalUnitType, UnitType } from "common/UnitData";
 
 const MAP_SIZE_X = 2000;
 const MAP_SIZE_Y = 2000;
@@ -46,14 +48,14 @@ const IMG_TOWER2 = document.getElementById("tower2") as HTMLImageElement;
 const IMG_TOWER3 = document.getElementById("tower3") as HTMLImageElement;
 const IMG_PINE = document.getElementById("pine") as HTMLImageElement;
 
-const TextureMap: Partial<Record<string, HTMLImageElement>> = {
-  soldier1: IMG_SOLDIER1,
-  soldier2: IMG_SOLDIER2,
-  soldier3: IMG_SOLDIER3,
-  soldier4: IMG_SOLDIER4,
-  tower2: IMG_TOWER2,
-  tower3: IMG_TOWER3,
-  pine: IMG_PINE,
+const TextureMap: Partial<Record<UnitType, HTMLImageElement>> = {
+  [UnitType.Soldier1]: IMG_SOLDIER1,
+  [UnitType.Soldier3]: IMG_SOLDIER3,
+  [UnitType.Soldier2]: IMG_SOLDIER2,
+  [UnitType.Soldier4]: IMG_SOLDIER4,
+  [UnitType.Tower2]: IMG_TOWER2,
+  [UnitType.Tower3]: IMG_TOWER3,
+  [UnitType.Pine]: IMG_PINE,
 };
 
 // ################################
@@ -84,6 +86,7 @@ canvas.addEventListener("click", canvasClicked);
 
 let thisPlayer: Player;
 let isMovingUnit = false;
+let selectedProvince = "none";
 let moveSource: AxialCoords = [0, 0];
 let possibleMoveTiles = new Set();
 
@@ -128,11 +131,11 @@ function drawTileFromMap(tileCoord: TileCoord, tile: Tile) {
   drawHexagon(x, y, TILE_BORDER, fillColor);
 }
 
-function drawUnitFromMap(tileCoord: TileCoord, unit: Unit) {
+function drawUnitFromMap(tileCoord: TileCoord, unitType: UnitType) {
   let [x, y] = getPixelFromTileCoord(utils.parseTileCoord(tileCoord));
   let size = TILE_SIZE * 1.5;
 
-  let image = TextureMap[unit.unitName] || IMG_SOLDIER1;
+  let image = TextureMap[unitType] || IMG_SOLDIER1;
 
   ctx.drawImage(
     image,
@@ -146,10 +149,9 @@ function drawUnitFromMap(tileCoord: TileCoord, unit: Unit) {
 function renderCanvas() {
   for (const [tileCoord, tile] of room.state.tiles) {
     drawTileFromMap(tileCoord, tile);
-  }
-
-  for (const [unitCoord, unit] of room.state.units) {
-    drawUnitFromMap(unitCoord, unit);
+    if (tile.unitType !== -1) {
+      drawUnitFromMap(tileCoord, tile.unitType);
+    }
   }
 }
 
@@ -211,8 +213,8 @@ function axialRound([q, r]: AxialCoords) {
   return [0 + q_i, 0 + r_i];
 }
 
-function getUnitInTile([q, r]: AxialCoords) {
-  return room.state.units.get(utils.hexToTileCoord([q, r]));
+function getTileAtCoords([q, r]: AxialCoords) {
+  return room.state.tiles.get(utils.hexToTileCoord([q, r]));
 }
 
 function canvasClicked(event: MouseEvent) {
@@ -227,30 +229,35 @@ function canvasClicked(event: MouseEvent) {
 
   [q, r] = axialRound([q, r]);
 
-  let unit = getUnitInTile([q, r]);
+  let tile = getTileAtCoords([q, r]);
+  let unitData = utils.getUnitDataAtTile(tile);
 
-  if (
-    unit &&
-    unit.ownerId === thisPlayer.playerId &&
-    unit.moveRange > 0 &&
-    !isMovingUnit
-  ) {
-    isMovingUnit = true;
-    moveSource = [q, r];
-
-    possibleMoveTiles = utils.getValidMoveTiles(
-      room.state.tiles,
-      room.state.units,
-      moveSource,
-      unit
-    );
-
-    render();
-  } else if (isMovingUnit) {
+  if (isMovingUnit) {
     isMovingUnit = false;
     if (moveSource[0] != q || moveSource[1] != r) {
       room.send("move", [moveSource, [q, r]]);
     }
+  } else if (tile.ownerId === thisPlayer.playerId) {
+    selectedProvince = "none";
+    if (unitData && unitData.moveRange > 0) {
+      isMovingUnit = true;
+      moveSource = [q, r];
+
+      possibleMoveTiles = utils.getValidMoveTiles(
+        room.state.tiles,
+        thisPlayer.playerId,
+        moveSource,
+        unitData
+      );
+
+      render();
+    } else {
+      selectedProvince = tile.provinceName;
+      render();
+    }
+  }
+  else {
+    selectedProvince = "none";
     render();
   }
 }

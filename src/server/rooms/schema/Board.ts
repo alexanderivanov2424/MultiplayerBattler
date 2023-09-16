@@ -6,6 +6,7 @@ import { Unit } from "./Unit";
 import { TileCoord, AxialCoords } from "common/utils";
 import * as utils from "common/utils";
 import { UnitType } from "common/UnitData";
+import * as UnitData from "common/UnitData";
 import * as generation from "server/WorldGen";
 import * as searchUtils from "server/SearchUtils";
 
@@ -25,7 +26,7 @@ export class Board extends Schema {
       this.tiles.set(tileCoord as TileCoord, new Tile());
     }
 
-    this.units.set("3,-4", UnitType.Pine);
+    this.tiles.get("3,-4").unitType = UnitType.Pine;
   }
 
   addPlayer(id: string) {
@@ -69,13 +70,13 @@ export class Board extends Schema {
         q = Math.round(q * 0.75);
         r = Math.round(r * 0.75);
         startCoord = utils.hexToTileCoord([q, r]);
-      } while (!this.tiles.get(startCoord) || this.units.get(startCoord));
+      } while (!this.tiles.get(startCoord) || this.tiles.get(startCoord).unitType >= 0);
 
       const startingProvince = player.createProvince();
       startingProvince.money = 10;
 
       this.addTileToProvince(startCoord, startingProvince);
-      this.units.set(startCoord, UnitType.Soldier1));
+      this.tiles.get(startCoord).unitType = UnitType.Soldier1;
 
       // add a single neighbor tile
       for (let [q_n, r_n] of utils.getHexNeighbors(this.tiles, [q, r])) {
@@ -113,24 +114,22 @@ export class Board extends Schema {
     const src_coord = utils.hexToTileCoord(src);
     const dest_coord = utils.hexToTileCoord(dest);
 
-    let unit = this.units.get(src_coord);
+    let srcTile = this.tiles.get(src_coord);
+    let destTile = this.tiles.get(dest_coord);
 
-    if (!unit || unit.moveRange === 0) {
+    let unitData = utils.getUnitDataAtTile(srcTile);
+
+    if (!unitData || unitData.moveRange === 0) {
       return;
     }
     // TODO: possible optimization, only need to check if path exists
     if (
       !utils
-        .getValidMoveTiles(this.tiles, this.units, src, unit)
+        .getValidMoveTiles(this.tiles, srcTile.ownerId, src, unitData)
         .has(dest_coord)
     ) {
       return;
     }
-
-    this.units.delete(src_coord);
-
-    let srcTile = this.tiles.get(src_coord);
-    let destTile = this.tiles.get(dest_coord);
 
     let previousOwnerId = destTile.ownerId;
     let newOwnerId = srcTile.ownerId;
@@ -153,32 +152,35 @@ export class Board extends Schema {
       this.checkProvinceMerge(dest, newOwner);
     }
 
-    this.units.set(dest_coord, unit);
+    destTile.unitType = srcTile.unitType;
+    srcTile.unitType = -1;
   }
 
-  purchaseUnit([q, r]: [number, number], unit: Unit, province: Province) {
+  purchaseUnit([q, r]: [number, number], unitType: UnitType, province: Province) {
+    const unitData = UnitData.getUnitData(unitType);
     const tileCoord = utils.hexToTileCoord([q, r]);
-    if (province.money - unit.cost >= 0) {
-      province.money -= unit.cost;
+    if (province.money - unitData.cost >= 0) {
+      province.money -= unitData.cost;
     } else {
       return;
     }
-    this.units.set(tileCoord, unit);
+    this.tiles.get(tileCoord).unitType = unitType;
   }
 
   removeUnitFromTile([q, r]: [number, number]) {
     const tileCoord = utils.hexToTileCoord([q, r]);
     const tile = this.tiles.get(tileCoord);
-    const unitToRemove = this.units.get(tileCoord);
+    const unitType = this.tiles.get(tileCoord).unitType;
 
-    if (!unitToRemove || tile.ownerId === "none") {
+    if (unitType === -1 || tile.ownerId === "none") {
       // tile has no unit or owner, so nothing to remove
       return;
     }
 
+    const unitData = UnitData.getUnitData(unitType);
     const tileOwner = this.players.get(tile.ownerId);
     const province = tileOwner.provinces.get(tile.provinceName);
-    province.income -= unitToRemove.income;
+    province.income -= unitData.income;
 
     // TODO unit could be a castle
   }
@@ -291,9 +293,9 @@ export class Board extends Schema {
       province.tiles.set(tileCoord, tile);
       province.income += 1;
 
-      let unit = this.units.get(tileCoord);
-      if (unit) {
-        province.income += unit.income;
+      let unitData = utils.getUnitDataAtTile(tile);
+      if (unitData) {
+        province.income += unitData.income;
       }
     }
 
@@ -343,31 +345,31 @@ export class Board extends Schema {
     }
   }
 
-  spreadTrees() {
-    this.units.forEach((unit, coord) => {
-      if (unit.unitName === "pine") {
-        const coordArray = utils.parseTileCoord(coord);
-        for (const [q, r] of utils.getHexNeighbors(this.tiles, [
-          coordArray[0],
-          coordArray[1],
-        ])) {
-          const neighborCoord = utils.hexToTileCoord([q, r]);
-          if (
-            this.tiles.get(neighborCoord) &&
-            this.tiles.get(neighborCoord).ownerId !== "none" &&
-            !this.units.get(neighborCoord)
-          ) {
-            const player = this.players.get(
-              this.tiles.get(neighborCoord).ownerId
-            );
-            const province = player.provinces.get(
-              this.tiles.get(neighborCoord).provinceName
-            );
-            this.units.set(neighborCoord, unit);
-            province.income += unit.income;
-          }
-        }
-      }
-    });
-  }
+  // spreadTrees() {
+  //   this.units.forEach((unit, coord) => {
+  //     if (unit.unitName === "pine") {
+  //       const coordArray = utils.parseTileCoord(coord);
+  //       for (const [q, r] of utils.getHexNeighbors(this.tiles, [
+  //         coordArray[0],
+  //         coordArray[1],
+  //       ])) {
+  //         const neighborCoord = utils.hexToTileCoord([q, r]);
+  //         if (
+  //           this.tiles.get(neighborCoord) &&
+  //           this.tiles.get(neighborCoord).ownerId !== "none" &&
+  //           !this.units.get(neighborCoord)
+  //         ) {
+  //           const player = this.players.get(
+  //             this.tiles.get(neighborCoord).ownerId
+  //           );
+  //           const province = player.provinces.get(
+  //             this.tiles.get(neighborCoord).provinceName
+  //           );
+  //           this.units.set(neighborCoord, unit);
+  //           province.income += unit.income;
+  //         }
+  //       }
+  //     }
+  //   });
+  // }
 }
