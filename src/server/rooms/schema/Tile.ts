@@ -1,5 +1,5 @@
 import { Schema, type } from "@colyseus/schema";
-import { Unit } from "./Unit";
+import { UnitType, Unit, getUnitData } from "./Unit";
 import {
   AxialCoords,
   TileCoord,
@@ -11,7 +11,15 @@ import {
 export class Tile extends Schema {
   @type("string") ownerId: string = null; // name of owner or null if not owned
   @type("string") provinceName: string = null; // key into owner's provinces map or null if not owned
-  @type(Unit) unit: Unit = null;
+  @type("uint8") unitType = UnitType.None;
+
+  get unit(): Unit {
+    return getUnitData(this.unitType);
+  }
+
+  set unit(unit: Unit) {
+    this.unitType = unit?.type ?? UnitType.None;
+  }
 
   coord: AxialCoords;
 }
@@ -44,6 +52,10 @@ export class TileMap {
 
   delete(coord: AxialCoords) {
     return this.map.delete(hexToTileCoord(coord));
+  }
+
+  getATile() {
+    return this[Symbol.iterator]().next().value;
   }
 
   get size() {

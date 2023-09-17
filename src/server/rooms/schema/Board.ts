@@ -2,7 +2,7 @@ import { Schema, MapSchema, type } from "@colyseus/schema";
 import { Tile, TileMap } from "./Tile";
 import { Player } from "./Player";
 import { Province } from "./Province";
-import { Unit, Soldier1, Pine } from "./Unit";
+import { UnitType, Unit, Farm, Soldier1, Pine } from "./Unit";
 import { TileCoord, AxialCoords } from "common/utils";
 import * as utils from "common/utils";
 import * as generation from "server/WorldGen";
@@ -14,7 +14,11 @@ export class Board extends Schema {
   @type("boolean") gameStarted = false;
   @type("number") currentPlayerNumber = 0;
 
-  tiles = new TileMap(this._tiles);
+  _tileMap = new TileMap(this._tiles);
+  get tiles() {
+    this._tileMap.map = this._tiles;
+    return this._tileMap;
+  }
 
   static create() {
     const state = new Board();
@@ -23,7 +27,7 @@ export class Board extends Schema {
     }
     const tile = state.tiles.get([3, 4]);
     if (tile) {
-      tile.unit = new Pine();
+      tile.unit = Pine;
     }
     return state;
   }
@@ -72,7 +76,7 @@ export class Board extends Schema {
       startingProvince.money = 10;
 
       this.addTileToProvince(tile, startingProvince);
-      tile.unit = new Soldier1();
+      tile.unit = Soldier1;
 
       // add a single neighbor tile
       for (const neighbor of this.tiles.neighbors(tile)) {
@@ -146,10 +150,49 @@ export class Board extends Schema {
     dest.unit = unit;
   }
 
-  purchaseUnit(tile: Tile, unit: Unit, province: Province) {
-    const unitCost = 0; // TODO: calculate unit cost
+  getUnitCost(province: Province, unitType: UnitType) {
+    switch (unitType) {
+      case UnitType.Farm:
+        // TODO: figure out actual function
+        return 15 + 5 * province.farms;
+      case UnitType.Soldier1:
+        return 10;
+      case UnitType.Soldier2:
+        return 20;
+      case UnitType.Soldier3:
+        return 30;
+      case UnitType.Soldier4:
+        return 40;
+      case UnitType.Tower2:
+        return 15;
+      case UnitType.Tower3:
+        return 35;
+      default:
+        return 0;
+    }
+  }
+
+  purchaseUnit(player: Player, province: Province, tile: Tile, unit: Unit) {
+    const unitCost = unit.cost;
+    if (!unitCost) {
+      // unit type cannot be purchased
+      return;
+    }
+
+    // create a dummy src tile with this unit
+    const src = new Tile();
+    src.ownerId = player.playerId;
+    src.unit = unit;
+    // check if the unit can "move" from the dummy tile to the requested location
+    if (!utils.isValidMove(this.tiles, src, tile)) {
+      return;
+    }
+
+    // if the province has enough money, place the unit on the tile
     if (province.money - unitCost >= 0) {
       province.money -= unitCost;
+      tile.ownerId = player.playerId;
+      tile.provinceName = province.name;
       tile.unit = unit;
     }
   }
@@ -268,6 +311,9 @@ export class Board extends Schema {
     tile.provinceName = province.name;
     province.tiles.set(tile.coord, tile);
     province.income += 1;
+    if (tile.unit === Farm) {
+      province.farms++;
+    }
   }
 
   checkProvinceMerge(newTile: Tile, newOwner: Player) {
@@ -298,7 +344,7 @@ export class Board extends Schema {
   spreadTrees() {
     for (const tile of this.tiles) {
       const unit = tile.unit;
-      if (unit instanceof Pine) {
+      if (unit === Pine) {
         for (const neighbor of this.tiles.neighbors(tile)) {
           if (neighbor && neighbor.ownerId && !neighbor.unit) {
             const player = this.players.get(neighbor.ownerId);

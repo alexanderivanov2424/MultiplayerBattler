@@ -2,9 +2,10 @@ import { type Room, Client } from "colyseus.js";
 import Panzoom from "@panzoom/panzoom";
 
 import { Board } from "server/rooms/schema/Board";
-import type { Tile } from "server/rooms/schema/Tile";
+import { type Tile, TileMap } from "server/rooms/schema/Tile";
 import type { Unit } from "server/rooms/schema/Unit";
 import type { Player } from "server/rooms/schema/Player";
+import type { Province } from "server/rooms/schema/Province";
 
 import * as utils from "common/utils";
 import { AxialCoords } from "common/utils";
@@ -84,6 +85,7 @@ canvas.addEventListener("click", canvasClicked);
 
 let thisPlayer: Player;
 let src: Tile;
+let selectedProvince: Province;
 let possibleMoves = new Set();
 
 // ################################
@@ -141,12 +143,102 @@ function drawUnitFromMap(tile: Tile, unit: Unit) {
   );
 }
 
+function drawHexHighlightInDirection(tile: Tile, direction: AxialCoords) {
+  const [x, y] = hexToPixelCoord(tile.coord);
+  const [x_d, y_d] = hexToPixelCoord([
+    tile.coord[0] + direction[0],
+    tile.coord[1] + direction[1],
+  ]);
+
+  const perp = [y - y_d, x_d - x];
+  const scale = TILE_SIZE / VERTICAL_UNIT;
+  const A = [
+    0.5 * (x_d + x - perp[0] * scale),
+    0.5 * (y_d + y - perp[1] * scale),
+  ];
+  const B = [
+    0.5 * (x_d + x + perp[0] * scale),
+    0.5 * (y_d + y + perp[1] * scale),
+  ];
+
+  ctx.beginPath();
+  ctx.lineTo(A[0] + MAP_SHIFT_X, A[1] + MAP_SHIFT_Y);
+  ctx.lineTo(B[0] + MAP_SHIFT_X, B[1] + MAP_SHIFT_Y);
+  ctx.closePath();
+
+  ctx.lineWidth = 10;
+  ctx.strokeStyle = "rgba(0, 0, 0, 0.5)";
+  ctx.stroke();
+}
+
+function getProvincePerimiter(tiles: TileMap) {
+  let sides: [Tile, AxialCoords][] = [];
+
+  for (let tile of tiles) {
+    for (let neighbor of tiles.neighbors(tile)) {
+      sides.push([tile, neighbor.coord]);
+    }
+  }
+
+  return sides;
+}
+
+function getProvinceSinglePerimiter(tiles: TileMap) {
+  //TODO rethink how to find the correct single outer perimiter
+  let checkTile = tiles.getATile();
+  let checkDirection = 0;
+
+  let direction = utils.HEX_NEIGHBORS[checkDirection];
+  let nextTile: Tile;
+
+  let [q, r] = checkTile.coord;
+
+  while ((nextTile = tiles.get([q + direction[0], r + direction[1]]))) {
+    checkTile = nextTile;
+    [q, r] = checkTile.coord;
+  }
+
+  const startTile = checkTile; // first tile on province perimiter
+
+  let sides: [Tile, AxialCoords][] = [];
+
+  do {
+    for (let i = 0; i < 6; i++) {
+      // check each direction in order until we find a tile
+      [q, r] = utils.HEX_NEIGHBORS[(checkDirection + i + 6) % 6];
+      let tile = tiles.get([checkTile.coord[0] + q, checkTile.coord[1] + r]);
+      if (tile) {
+        // found valid tile, start checking its edges next
+        checkTile = tile;
+        checkDirection = (checkDirection + i - 2 + 6) % 6;
+        break;
+      } else {
+        // found an edge for the provice, save it
+        sides.push([checkTile, [q, r]]);
+      }
+    }
+  } while (checkTile !== startTile);
+
+  return sides;
+}
+
+function renderProvincePerimiter(tiles: TileMap) {
+  let sides: [Tile, AxialCoords][] = getProvincePerimiter(tiles);
+  for (let [tile, direction] of sides) {
+    drawHexHighlightInDirection(tile, direction);
+  }
+}
+
 function renderCanvas() {
   for (const tile of room.state.tiles) {
     drawTileFromMap(tile);
     if (tile.unit) {
       drawUnitFromMap(tile, tile.unit);
     }
+  }
+
+  if (selectedProvince) {
+    renderProvincePerimiter(selectedProvince.tiles);
   }
 }
 
@@ -221,20 +313,21 @@ function canvasClicked(event: MouseEvent) {
   const tile = room.state.tiles.get(axialRound([q, r]));
   const unit = tile?.unit;
 
-  if (
-    unit &&
-    tile.ownerId === thisPlayer.playerId &&
-    unit.moveRange > 0 &&
-    !src
-  ) {
-    src = tile;
-    possibleMoves = utils.getValidMoves(room.state.tiles, src);
-    render();
-  } else if (src) {
+  if (src) {
     if (tile && tile !== src) {
       room.send("move", [src.coord, tile.coord]);
     }
     src = null;
+  } else if (tile && tile.ownerId === thisPlayer.playerId) {
+    selectedProvince = thisPlayer.provinces.get(tile.provinceName);
+    if (unit && unit.moveRange > 0) {
+      src = tile;
+      possibleMoves = utils.getValidMoves(room.state.tiles, src);
+      render();
+    }
+  } else {
+    src = null;
+    selectedProvince = null;
     render();
   }
 }
@@ -245,6 +338,7 @@ function isPlayersTurn() {
 
 const readyButton = document.getElementById("ready") as HTMLButtonElement;
 const endTurnButton = document.getElementById("end-turn") as HTMLButtonElement;
+const purchaseButton = document.getElementById("purchase") as HTMLButtonElement;
 readyButton.addEventListener("click", () => room.send("readyToStart"));
 endTurnButton.addEventListener("click", () => {
   if (!src) {
@@ -278,7 +372,6 @@ if (!joinedRoom) {
 window.localStorage.setItem("reconnectionToken", room.reconnectionToken);
 
 room.onStateChange((state) => {
-  state.tiles.map = state._tiles;
   render();
 });
 

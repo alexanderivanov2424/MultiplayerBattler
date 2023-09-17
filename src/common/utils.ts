@@ -50,7 +50,7 @@ function getMovesInRange(tiles: TileMap, src: Tile) {
   return tilesInMoveRange;
 }
 
-function isValidMove(tiles: TileMap, src: Tile, dest: Tile) {
+export function isValidMove(tiles: TileMap, src: Tile, dest: Tile) {
   if (dest.ownerId === src.ownerId) {
     //TODO combine units
     return true;

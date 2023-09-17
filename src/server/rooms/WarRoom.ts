@@ -1,5 +1,6 @@
 import { Room, Client } from "@colyseus/core";
 import { Board } from "./schema/Board";
+import { getUnitData } from "./schema/Unit";
 
 export class WarRoom extends Room<Board> {
   maxClients = 4;
@@ -11,6 +12,18 @@ export class WarRoom extends Room<Board> {
     this.onMessage("move", (client, [src, dest]) => {
       if (!this.isClientTurn(client)) return;
       this.state.moveUnit(src, dest);
+    });
+
+    this.onMessage("purchase", (client, [provinceName, coord, unitType]) => {
+      if (!this.isClientTurn(client)) return;
+      const player = this.state.players.get(client.sessionId);
+      const province = player.provinces.get(provinceName);
+      const tile = this.state.tiles.get(coord);
+      const unit = getUnitData(unitType);
+      if (!province || !tile || !unit) {
+        return;
+      }
+      this.state.purchaseUnit(player, province, tile, unit);
     });
 
     this.onMessage("readyToStart", (client) => {

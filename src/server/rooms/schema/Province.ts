@@ -9,8 +9,13 @@ export class Province extends Schema {
   @type({ map: Tile }) _tiles = new MapSchema<Tile, TileCoord>();
   @type("number") money: number = 0;
   @type("number") income: number = 0;
+  @type("number") farms: number = 0;
 
-  tiles = new TileMap(this._tiles);
+  _tileMap = new TileMap(this._tiles);
+  get tiles() {
+    this._tileMap.map = this._tiles;
+    return this._tileMap;
+  }
 
   static create(owner: Player, name: string) {
     return new Province().assign({
