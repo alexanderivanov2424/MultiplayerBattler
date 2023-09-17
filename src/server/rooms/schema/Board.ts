@@ -2,8 +2,19 @@ import { Schema, MapSchema, type } from "@colyseus/schema";
 import { Tile, TileMap } from "./Tile";
 import { Player } from "./Player";
 import { Province } from "./Province";
-import { UnitType, Unit, Farm, Soldier1, Pine, isSoldier, MAX_LEVEL, getSoldierOfLevel, isTower, isTree } from "./Unit";
-import { TileCoord, AxialCoords } from "common/utils";
+import {
+  UnitType,
+  Unit,
+  Farm,
+  Soldier1,
+  Pine,
+  isSoldier,
+  MAX_LEVEL,
+  getSoldierOfLevel,
+  isTower,
+  isTree,
+} from "./Unit";
+import { TileCoord } from "common/utils";
 import * as utils from "common/utils";
 import * as generation from "server/WorldGen";
 import * as searchUtils from "server/SearchUtils";
@@ -110,18 +121,30 @@ export class Board extends Schema {
     this.players.delete(id);
   }
 
-  handleUnitPlacement(player: Player, province: Province, unit: Unit, tile: Tile): boolean {
+  handleUnitPlacement(
+    player: Player,
+    province: Province,
+    unit: Unit,
+    tile: Tile
+  ): boolean {
     if (tile.ownerId === player.playerId) {
       return this.mergeUnitAtTile(province, unit, tile);
     } else {
-      const previousProvince = this.players.get(tile.ownerId)?.provinces.get(tile.provinceName);
+      const previousProvince = this.players
+        .get(tile.ownerId)
+        ?.provinces.get(tile.provinceName);
       const newProvince = province;
       return this.captureTile(tile, unit, previousProvince, newProvince);
     }
   }
 
   // handle change in ownership at tile
-  captureTile(tile: Tile, unit: Unit, previousProvince: Province | null, newProvince: Province) {
+  captureTile(
+    tile: Tile,
+    unit: Unit,
+    previousProvince: Province | null,
+    newProvince: Province
+  ) {
     const previousOwner = this.players.get(previousProvince?.ownerId);
     const newOwner = this.players.get(newProvince.ownerId);
 
@@ -239,7 +262,7 @@ export class Board extends Schema {
     province: Province,
     provinceOwner: Player
   ) {
-    if (tile.ownerId != provinceOwner.playerId) {
+    if (tile.ownerId !== provinceOwner.playerId) {
       return;
     }
     tile.ownerId = null;

@@ -336,7 +336,11 @@ function canvasClicked(event: MouseEvent) {
   } else if (selectedUnitType) {
     // TODO: highlight valid purchased
     if (tile) {
-      room.send("purchase", [selectedProvince.name, tile.coord, selectedUnitType]);
+      room.send("purchase", [
+        selectedProvince.name,
+        tile.coord,
+        selectedUnitType,
+      ]);
     }
     selectedUnitType = null;
     render();
