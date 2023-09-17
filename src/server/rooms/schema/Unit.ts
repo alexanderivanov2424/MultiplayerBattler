@@ -14,15 +14,20 @@ export enum UnitType {
 }
 
 export function isSoldier(unitType: UnitType) {
-  return (unitType === UnitType.Soldier1 || unitType === UnitType.Soldier2 || unitType === UnitType.Soldier3 || unitType === UnitType.Soldier4);
+  return (
+    unitType === UnitType.Soldier1 ||
+    unitType === UnitType.Soldier2 ||
+    unitType === UnitType.Soldier3 ||
+    unitType === UnitType.Soldier4
+  );
 }
 
 export function isTower(unitType: UnitType) {
-  return (unitType === UnitType.Tower2 || unitType === UnitType.Tower3);
+  return unitType === UnitType.Tower2 || unitType === UnitType.Tower3;
 }
 
 export function isTree(unitType: UnitType) {
-  return (unitType === UnitType.Pine || unitType === UnitType.Palm);
+  return unitType === UnitType.Pine || unitType === UnitType.Palm;
 }
 
 export const MAX_LEVEL = 4;
