@@ -1,16 +1,16 @@
 export enum UnitType {
   None,
-  Castle,
-  Farm,
-  Grave,
-  Pine,
-  Palm,
   Soldier1,
   Soldier2,
   Soldier3,
   Soldier4,
+  Farm,
   Tower2,
   Tower3,
+  Castle,
+  Grave,
+  Pine,
+  Palm
 }
 
 export function isSoldier(unitType: UnitType) {
@@ -115,17 +115,17 @@ export interface Unit {
 
 const UNIT_DATA_MAP: Record<UnitType, Unit> = {
   [UnitType.None]: null,
-  [UnitType.Castle]: Castle,
-  [UnitType.Farm]: Farm,
-  [UnitType.Grave]: Grave,
-  [UnitType.Pine]: Pine,
-  [UnitType.Palm]: Palm,
   [UnitType.Soldier1]: Soldier1,
   [UnitType.Soldier2]: Soldier2,
   [UnitType.Soldier3]: Soldier3,
   [UnitType.Soldier4]: Soldier4,
+  [UnitType.Farm]: Farm,
   [UnitType.Tower2]: Tower2,
   [UnitType.Tower3]: Tower3,
+  [UnitType.Castle]: Castle,
+  [UnitType.Grave]: Grave,
+  [UnitType.Pine]: Pine,
+  [UnitType.Palm]: Palm
 };
 
 export function getUnitData(unitType: UnitType) {
@@ -133,16 +133,17 @@ export function getUnitData(unitType: UnitType) {
 }
 
 export function getSoldierOfLevel(level: number) {
-  switch (level) {
-    case 0:
-      return Soldier1;
-    case 1:
-      return Soldier2;
-    case 2:
-      return Soldier3;
-    case 3:
-      return Soldier4;
-    default:
-      return null;
-  }
+  return getUnitData(level);
+  // switch (level) {
+  //   case 1:
+  //     return Soldier1;
+  //   case 2:
+  //     return Soldier2;
+  //   case 3:
+  //     return Soldier3;
+  //   case 4:
+  //     return Soldier4;
+  //   default:
+  //     return null;
+  // }
 }

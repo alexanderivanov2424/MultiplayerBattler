@@ -1,5 +1,5 @@
 import { Tile, TileMap } from "server/rooms/schema/Tile";
-import { MAX_LEVEL } from "server/rooms/schema/Unit";
+import { MAX_LEVEL, Unit } from "server/rooms/schema/Unit";
 
 export type AxialCoords = [q: number, r: number];
 export type TileCoord = `${number},${number}`;
@@ -49,12 +49,11 @@ function getMovesInRange(tiles: TileMap, src: Tile) {
   return tilesInMoveRange;
 }
 
-export function isValidMove(tiles: TileMap, src: Tile, dest: Tile) {
-  if (dest.ownerId === src.ownerId) {
+export function isValidMove(tiles: TileMap, playerId: string, unit: Unit, dest: Tile) {
+  if (dest.ownerId === playerId) {
     //TODO combine units
     return true;
   }
-  const unit = src.unit;
   return [dest, ...tiles.neighbors(dest)].every((tile) => {
     const defendingUnit = tile.unit;
     return (
@@ -69,7 +68,7 @@ export function isValidMove(tiles: TileMap, src: Tile, dest: Tile) {
 export function getValidMoves(tiles: TileMap, src: Tile) {
   const validMoves = new Set();
   for (const dest of getMovesInRange(tiles, src)) {
-    if (isValidMove(tiles, src, dest)) {
+    if (isValidMove(tiles, src.ownerId, src.unit, dest)) {
       validMoves.add(dest);
     }
   }

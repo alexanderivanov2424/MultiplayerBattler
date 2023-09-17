@@ -3,7 +3,7 @@ import Panzoom from "@panzoom/panzoom";
 
 import { Board } from "server/rooms/schema/Board";
 import { type Tile, TileMap } from "server/rooms/schema/Tile";
-import { type Unit, UnitType } from "server/rooms/schema/Unit";
+import { type Unit, UnitType, getUnitData } from "server/rooms/schema/Unit";
 import type { Player } from "server/rooms/schema/Player";
 import type { Province } from "server/rooms/schema/Province";
 
@@ -43,6 +43,7 @@ const IMG_SOLDIER1 = document.getElementById("soldier1") as HTMLImageElement;
 const IMG_SOLDIER2 = document.getElementById("soldier2") as HTMLImageElement;
 const IMG_SOLDIER3 = document.getElementById("soldier3") as HTMLImageElement;
 const IMG_SOLDIER4 = document.getElementById("soldier4") as HTMLImageElement;
+const IMG_FARM = document.getElementById("farm") as HTMLImageElement;
 const IMG_TOWER2 = document.getElementById("tower2") as HTMLImageElement;
 const IMG_TOWER3 = document.getElementById("tower3") as HTMLImageElement;
 const IMG_PINE = document.getElementById("pine") as HTMLImageElement;
@@ -52,6 +53,7 @@ const TextureMap: Partial<Record<UnitType, HTMLImageElement>> = {
   [UnitType.Soldier2]: IMG_SOLDIER2,
   [UnitType.Soldier3]: IMG_SOLDIER3,
   [UnitType.Soldier4]: IMG_SOLDIER4,
+  [UnitType.Farm]: IMG_FARM,
   [UnitType.Tower2]: IMG_TOWER2,
   [UnitType.Tower3]: IMG_TOWER3,
   [UnitType.Pine]: IMG_PINE,
@@ -125,7 +127,7 @@ function drawTileFromMap(tile: Tile) {
   const [color, shadedColor] =
     PLAYER_TILE_COLORS[room.state.players.get(tile.ownerId)?.playerNumber] ||
     NEUTRAL_TILE_COLORS;
-  const fillColor = src && !possibleMoves.has(tile) ? shadedColor : color;
+  const fillColor = (src || selectedUnitType) && !possibleMoves.has(tile) ? shadedColor : color;
   drawHexagon(x, y, TILE_BORDER, fillColor);
 }
 
@@ -273,9 +275,9 @@ function renderHUD() {
   if (room.state.gameStarted && isPlayersTurn() && selectedProvince) {
     purchaseButton.style.display = "inline-block";
     if (selectedUnitType) {
-      purchaseButton.style.backgroundColor = "yellow";
+      purchaseButton.style.backgroundImage = "url(" + TextureMap[selectedUnitType].src + ")";
     } else {
-      purchaseButton.style.backgroundColor = null;
+      purchaseButton.style.backgroundImage = null;
     }
   } else {
     purchaseButton.style.display = "none";
@@ -338,22 +340,20 @@ function canvasClicked(event: MouseEvent) {
     if (tile) {
       room.send("purchase", [selectedProvince.name, tile.coord, selectedUnitType]);
     }
-    selectedUnitType = null;
-    render();
+    selectedUnitType = UnitType.None;
   } else if (tile && tile.ownerId === thisPlayer.playerId) {
     selectedProvince = thisPlayer.provinces.get(tile.provinceName);
-    selectedUnitType = null;
+    selectedUnitType = UnitType.None;
     if (unit && unit.moveRange > 0) {
       src = tile;
       possibleMoves = utils.getValidMoves(room.state.tiles, src);
-      render();
     }
   } else {
     src = null;
     selectedProvince = null;
-    selectedUnitType = null;
-    render();
+    selectedUnitType = UnitType.None;
   }
+  render();
 }
 
 function isPlayersTurn() {
@@ -372,8 +372,24 @@ endTurnButton.addEventListener("click", () => {
 purchaseButton.addEventListener("click", () => {
   if (selectedProvince) {
     src = null;
-    selectedUnitType = UnitType.Soldier1;
+    if (selectedUnitType !== UnitType.Tower3) {
+      selectedUnitType++;
+    } else {
+      selectedUnitType = UnitType.None;
+      possibleMoves.clear();
+      renderHUD();
+      renderCanvas();
+      return;
+    }
+    possibleMoves = selectedProvince.tiles.tileSet();
+    for (const [tile, [shift_q, shift_r]] of getProvincePerimiter(selectedProvince.tiles)) {
+      const neighborTile = room.state.tiles.get([tile.coord[0] + shift_q, tile.coord[1] + shift_r]);
+      if (neighborTile && utils.isValidMove(room.state.tiles, thisPlayer.playerId, getUnitData(selectedUnitType), neighborTile)) {
+        possibleMoves.add(neighborTile);
+      }
+    }
     renderHUD();
+    renderCanvas();
   }
 });
 

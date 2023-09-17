@@ -58,6 +58,15 @@ export class TileMap {
     return this[Symbol.iterator]().next().value;
   }
 
+  tileSet() {
+    const tileSet = new Set();
+    this.map.forEach((tile, coord) => {
+      tile.coord = parseTileCoord(coord);
+      tileSet.add(tile);
+    });
+    return tileSet;
+  }
+
   get size() {
     return this.map.size;
   }

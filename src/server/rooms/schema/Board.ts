@@ -148,13 +148,13 @@ export class Board extends Schema {
       return;
     }
 
-    src.unit = null;
-
     const newOwnerId = src.ownerId;
     const newOwner = this.players.get(newOwnerId);
     const srcProvince = newOwner.provinces.get(src.provinceName);
 
-    this.handleUnitPlacement(player, srcProvince, unit, dest);
+    if (this.handleUnitPlacement(player, srcProvince, unit, dest)) {
+      src.unit = null;
+    }
   }
 
   purchaseUnit(player: Player, province: Province, tile: Tile, unit: Unit) {
@@ -164,10 +164,6 @@ export class Board extends Schema {
       return;
     }
 
-    // create a dummy src tile with this unit
-    const src = new Tile();
-    src.ownerId = player.playerId;
-    src.unit = unit;
     if (unit.moveRange === 0 && tile.ownerId !== player.playerId) {
       // you can't purchase immovable units on unowned tiles
       return;
@@ -176,7 +172,7 @@ export class Board extends Schema {
       return;
     }
     // check if the unit can "move" from the dummy tile to the requested location
-    if (!utils.isValidMove(this.tiles, src, tile)) {
+    if (!utils.isValidMove(this.tiles, player.playerId, unit, tile)) {
       return;
     }
 
@@ -195,7 +191,7 @@ export class Board extends Schema {
     } else if (isSoldier(unit.type)) {
       if (isSoldier(tile.unit.type)) {
         const incomeLost = tile.unit.income + unit.income;
-        const newLevel = Math.min(tile.unit.level + unit.level - 1, MAX_LEVEL);
+        const newLevel = Math.min(tile.unit.level + unit.level, MAX_LEVEL);
         province.income -= incomeLost;
         const newUnit = getSoldierOfLevel(newLevel);
         province.income += newUnit.income;
@@ -217,6 +213,8 @@ export class Board extends Schema {
       } else {
         return false;
       }
+    } else {
+      return false;
     }
     return true;
   }
