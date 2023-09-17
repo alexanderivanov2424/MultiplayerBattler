@@ -1,4 +1,5 @@
 import { Tile, TileMap } from "server/rooms/schema/Tile";
+import { MAX_LEVEL } from "server/rooms/schema/Unit";
 
 export type AxialCoords = [q: number, r: number];
 export type TileCoord = `${number},${number}`;
@@ -12,8 +13,6 @@ export const HEX_NEIGHBORS = [
   [0, -1],
   [1, -1],
 ];
-
-const MAX_LEVEL = 4;
 
 export function hexToTileCoord([q, r]: AxialCoords): TileCoord {
   return `${q},${r}`;

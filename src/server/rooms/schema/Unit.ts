@@ -13,6 +13,20 @@ export enum UnitType {
   Tower3,
 }
 
+export function isSoldier(unitType: UnitType) {
+  return (unitType === UnitType.Soldier1 || unitType === UnitType.Soldier2 || unitType === UnitType.Soldier3 || unitType === UnitType.Soldier4);
+}
+
+export function isTower(unitType: UnitType) {
+  return (unitType === UnitType.Tower2 || unitType === UnitType.Tower3);
+}
+
+export function isTree(unitType: UnitType) {
+  return (unitType === UnitType.Pine || unitType === UnitType.Palm);
+}
+
+export const MAX_LEVEL = 4;
+
 export const Castle = {
   type: UnitType.Castle,
   moveRange: 0,
@@ -53,7 +67,7 @@ export const Soldier1 = {
   moveRange: 4,
   cost: 10,
   level: 1,
-  income: -1,
+  income: -2,
 };
 export const Soldier2 = {
   type: UnitType.Soldier2,
@@ -116,4 +130,19 @@ const UNIT_DATA_MAP: Record<UnitType, Unit> = {
 
 export function getUnitData(unitType: UnitType) {
   return UNIT_DATA_MAP[unitType];
+}
+
+export function getSoldierOfLevel(level: number) {
+  switch (level) {
+    case 0:
+      return Soldier1;
+    case 1:
+      return Soldier2;
+    case 2:
+      return Soldier3;
+    case 3:
+      return Soldier4;
+    default:
+      return null;
+  }
 }

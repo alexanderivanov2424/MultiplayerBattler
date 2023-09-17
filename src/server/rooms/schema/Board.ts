@@ -2,7 +2,7 @@ import { Schema, MapSchema, type } from "@colyseus/schema";
 import { Tile, TileMap } from "./Tile";
 import { Player } from "./Player";
 import { Province } from "./Province";
-import { UnitType, Unit, Farm, Soldier1, Pine } from "./Unit";
+import { UnitType, Unit, Farm, Soldier1, Pine, isSoldier, MAX_LEVEL, getSoldierOfLevel, isTower, isTree } from "./Unit";
 import { TileCoord, AxialCoords } from "common/utils";
 import * as utils from "common/utils";
 import * as generation from "server/WorldGen";
@@ -73,7 +73,7 @@ export class Board extends Schema {
       } while (!tile || tile.unit);
 
       const startingProvince = player.createProvince();
-      startingProvince.money = 10;
+      startingProvince.money = 1000;
 
       this.addTileToProvince(tile, startingProvince);
       tile.unit = Soldier1;
@@ -82,6 +82,7 @@ export class Board extends Schema {
       for (const neighbor of this.tiles.neighbors(tile)) {
         if (!neighbor.ownerId) {
           this.addTileToProvince(neighbor, startingProvince);
+          neighbor.unit = Soldier1;
           break;
         }
       }
@@ -109,13 +110,35 @@ export class Board extends Schema {
     this.players.delete(id);
   }
 
-  moveUnit(srcCoord: AxialCoords, destCoord: AxialCoords) {
-    const src = this.tiles.get(srcCoord);
-    const dest = this.tiles.get(destCoord);
-    if (!src || !dest) {
-      return;
+  handleUnitPlacement(player: Player, province: Province, unit: Unit, tile: Tile): boolean {
+    if (tile.ownerId === player.playerId) {
+      return this.mergeUnitAtTile(province, unit, tile);
+    } else {
+      const previousProvince = this.players.get(tile.ownerId)?.provinces.get(tile.provinceName);
+      const newProvince = province;
+      return this.captureTile(tile, unit, previousProvince, newProvince);
     }
+  }
 
+  // handle change in ownership at tile
+  captureTile(tile: Tile, unit: Unit, previousProvince: Province | null, newProvince: Province) {
+    const previousOwner = this.players.get(previousProvince?.ownerId);
+    const newOwner = this.players.get(newProvince.ownerId);
+
+    this.removeUnitFromTile(tile);
+    if (previousOwner !== newOwner) {
+      if (previousProvince) {
+        this.removeTileFromProvince(tile, previousProvince, previousOwner);
+        this.checkProvinceSplit(tile, previousProvince, previousOwner);
+      }
+      this.addTileToProvince(tile, newProvince);
+      this.checkProvinceMerge(tile, newOwner);
+    }
+    tile.unit = unit;
+    return true;
+  }
+
+  moveUnit(player: Player, src: Tile, dest: Tile) {
     const unit = src.unit;
     if (!unit || unit.moveRange === 0) {
       return;
@@ -127,49 +150,11 @@ export class Board extends Schema {
 
     src.unit = null;
 
-    const previousOwnerId = dest.ownerId;
     const newOwnerId = src.ownerId;
-
-    const previousOwner = this.players.get(previousOwnerId);
     const newOwner = this.players.get(newOwnerId);
-
     const srcProvince = newOwner.provinces.get(src.provinceName);
 
-    this.removeUnitFromTile(dest);
-    if (previousOwnerId !== newOwnerId && previousOwnerId) {
-      const destProvince = previousOwner.provinces.get(dest.provinceName);
-      this.removeTileFromProvince(dest, destProvince, previousOwner);
-      this.checkProvinceSplit(dest, destProvince, previousOwner);
-    }
-
-    if (previousOwnerId !== newOwnerId) {
-      this.addTileToProvince(dest, srcProvince);
-      this.checkProvinceMerge(dest, newOwner);
-    }
-
-    dest.unit = unit;
-  }
-
-  getUnitCost(province: Province, unitType: UnitType) {
-    switch (unitType) {
-      case UnitType.Farm:
-        // TODO: figure out actual function
-        return 15 + 5 * province.farms;
-      case UnitType.Soldier1:
-        return 10;
-      case UnitType.Soldier2:
-        return 20;
-      case UnitType.Soldier3:
-        return 30;
-      case UnitType.Soldier4:
-        return 40;
-      case UnitType.Tower2:
-        return 15;
-      case UnitType.Tower3:
-        return 35;
-      default:
-        return 0;
-    }
+    this.handleUnitPlacement(player, srcProvince, unit, dest);
   }
 
   purchaseUnit(player: Player, province: Province, tile: Tile, unit: Unit) {
@@ -183,18 +168,57 @@ export class Board extends Schema {
     const src = new Tile();
     src.ownerId = player.playerId;
     src.unit = unit;
+    if (unit.moveRange === 0 && tile.ownerId !== player.playerId) {
+      // you can't purchase immovable units on unowned tiles
+      return;
+    }
+    if (![...province.tiles.neighbors(tile)].length) {
+      return;
+    }
     // check if the unit can "move" from the dummy tile to the requested location
     if (!utils.isValidMove(this.tiles, src, tile)) {
       return;
     }
 
-    // if the province has enough money, place the unit on the tile
+    // if the province has enough money, try to place the unit on the tile
     if (province.money - unitCost >= 0) {
-      province.money -= unitCost;
-      tile.ownerId = player.playerId;
-      tile.provinceName = province.name;
-      tile.unit = unit;
+      if (this.handleUnitPlacement(player, province, unit, tile)) {
+        province.income += unit.income;
+        province.money -= unitCost;
+      }
     }
+  }
+
+  mergeUnitAtTile(province: Province, unit: Unit, tile: Tile): boolean {
+    if (!tile.unit) {
+      tile.unit = unit;
+    } else if (isSoldier(unit.type)) {
+      if (isSoldier(tile.unit.type)) {
+        const incomeLost = tile.unit.income + unit.income;
+        const newLevel = Math.min(tile.unit.level + unit.level - 1, MAX_LEVEL);
+        province.income -= incomeLost;
+        const newUnit = getSoldierOfLevel(newLevel);
+        province.income += newUnit.income;
+        tile.unit = newUnit;
+      } else if (isTree(tile.unit.type)) {
+        // TODO: Do you get money for capturing graves?
+        province.money += 3;
+        tile.unit = unit;
+      } else if (tile.unit.type === UnitType.Grave) {
+        tile.unit = unit;
+      } else {
+        return false;
+      }
+    } else if (isTower(unit.type)) {
+      if (isTower(tile.unit.type) && tile.unit.level < unit.level) {
+        province.income -= tile.unit.income;
+        province.income += unit.income;
+        tile.unit = unit;
+      } else {
+        return false;
+      }
+    }
+    return true;
   }
 
   removeUnitFromTile(tile: Tile) {

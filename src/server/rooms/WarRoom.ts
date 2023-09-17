@@ -9,9 +9,15 @@ export class WarRoom extends Room<Board> {
     this.setState(Board.create());
     console.log("set state");
 
-    this.onMessage("move", (client, [src, dest]) => {
+    this.onMessage("move", (client, [srcCoord, destCoord]) => {
       if (!this.isClientTurn(client)) return;
-      this.state.moveUnit(src, dest);
+      const player = this.state.players.get(client.sessionId);
+      const src = this.state.tiles.get(srcCoord);
+      const dest = this.state.tiles.get(destCoord);
+      if (!src || !dest) {
+        return;
+      }
+      this.state.moveUnit(player, src, dest);
     });
 
     this.onMessage("purchase", (client, [provinceName, coord, unitType]) => {

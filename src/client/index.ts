@@ -3,7 +3,7 @@ import Panzoom from "@panzoom/panzoom";
 
 import { Board } from "server/rooms/schema/Board";
 import { type Tile, TileMap } from "server/rooms/schema/Tile";
-import type { Unit } from "server/rooms/schema/Unit";
+import { type Unit, UnitType } from "server/rooms/schema/Unit";
 import type { Player } from "server/rooms/schema/Player";
 import type { Province } from "server/rooms/schema/Province";
 
@@ -47,14 +47,14 @@ const IMG_TOWER2 = document.getElementById("tower2") as HTMLImageElement;
 const IMG_TOWER3 = document.getElementById("tower3") as HTMLImageElement;
 const IMG_PINE = document.getElementById("pine") as HTMLImageElement;
 
-const TextureMap: Partial<Record<string, HTMLImageElement>> = {
-  Soldier1: IMG_SOLDIER1,
-  Soldier2: IMG_SOLDIER2,
-  Soldier3: IMG_SOLDIER3,
-  Soldier4: IMG_SOLDIER4,
-  Tower2: IMG_TOWER2,
-  Tower3: IMG_TOWER3,
-  Pine: IMG_PINE,
+const TextureMap: Partial<Record<UnitType, HTMLImageElement>> = {
+  [UnitType.Soldier1]: IMG_SOLDIER1,
+  [UnitType.Soldier2]: IMG_SOLDIER2,
+  [UnitType.Soldier3]: IMG_SOLDIER3,
+  [UnitType.Soldier4]: IMG_SOLDIER4,
+  [UnitType.Tower2]: IMG_TOWER2,
+  [UnitType.Tower3]: IMG_TOWER3,
+  [UnitType.Pine]: IMG_PINE,
 };
 
 // ################################
@@ -86,6 +86,7 @@ canvas.addEventListener("click", canvasClicked);
 let thisPlayer: Player;
 let src: Tile;
 let selectedProvince: Province;
+let selectedUnitType: UnitType;
 let possibleMoves = new Set();
 
 // ################################
@@ -132,7 +133,7 @@ function drawUnitFromMap(tile: Tile, unit: Unit) {
   const [x, y] = hexToPixelCoord(tile.coord);
   const size = TILE_SIZE * 1.5;
 
-  const image = TextureMap[unit.constructor.name] || IMG_SOLDIER1;
+  const image = TextureMap[unit.type] || IMG_SOLDIER1;
 
   ctx.drawImage(
     image,
@@ -172,14 +173,16 @@ function drawHexHighlightInDirection(tile: Tile, direction: AxialCoords) {
 }
 
 function getProvincePerimiter(tiles: TileMap) {
-  let sides: [Tile, AxialCoords][] = [];
+  const sides: [Tile, AxialCoords][] = [];
 
-  for (let tile of tiles) {
-    for (let neighbor of tiles.neighbors(tile)) {
-      sides.push([tile, neighbor.coord]);
+  for (const tile of tiles) {
+    for (const [shift_q, shift_r] of utils.HEX_NEIGHBORS) {
+      // check each direction in order until we find a tile
+      if (!tiles.get([tile.coord[0] + shift_q, tile.coord[1] + shift_r])) {
+        sides.push([tile, [shift_q, shift_r]]);
+      }
     }
   }
-
   return sides;
 }
 
@@ -266,9 +269,21 @@ function renderHUD() {
   } else {
     endTurnButton.style.display = "none";
   }
+
+  if (room.state.gameStarted && isPlayersTurn() && selectedProvince) {
+    purchaseButton.style.display = "inline-block";
+    if (selectedUnitType) {
+      purchaseButton.style.backgroundColor = "yellow";
+    } else {
+      purchaseButton.style.backgroundColor = null;
+    }
+  } else {
+    purchaseButton.style.display = "none";
+  }
 }
 
 function render() {
+  ctx.clearRect(0, 0, MAP_SIZE_X, MAP_SIZE_Y);
   thisPlayer = room.state.players.get(room.sessionId);
   renderHUD();
   renderCanvas();
@@ -318,8 +333,16 @@ function canvasClicked(event: MouseEvent) {
       room.send("move", [src.coord, tile.coord]);
     }
     src = null;
+  } else if (selectedUnitType) {
+    // TODO: highlight valid purchased
+    if (tile) {
+      room.send("purchase", [selectedProvince.name, tile.coord, selectedUnitType]);
+    }
+    selectedUnitType = null;
+    render();
   } else if (tile && tile.ownerId === thisPlayer.playerId) {
     selectedProvince = thisPlayer.provinces.get(tile.provinceName);
+    selectedUnitType = null;
     if (unit && unit.moveRange > 0) {
       src = tile;
       possibleMoves = utils.getValidMoves(room.state.tiles, src);
@@ -328,6 +351,7 @@ function canvasClicked(event: MouseEvent) {
   } else {
     src = null;
     selectedProvince = null;
+    selectedUnitType = null;
     render();
   }
 }
@@ -343,6 +367,13 @@ readyButton.addEventListener("click", () => room.send("readyToStart"));
 endTurnButton.addEventListener("click", () => {
   if (!src) {
     room.send("endTurn");
+  }
+});
+purchaseButton.addEventListener("click", () => {
+  if (selectedProvince) {
+    src = null;
+    selectedUnitType = UnitType.Soldier1;
+    renderHUD();
   }
 });
 
@@ -371,7 +402,7 @@ if (!joinedRoom) {
 }
 window.localStorage.setItem("reconnectionToken", room.reconnectionToken);
 
-room.onStateChange((state) => {
+room.onStateChange(() => {
   render();
 });
 
