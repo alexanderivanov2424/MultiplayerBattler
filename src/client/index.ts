@@ -92,6 +92,7 @@ let thisPlayer: Player;
 let src: Tile;
 let selectedProvince: Province;
 let selectedUnitType: UnitType;
+let purchaseMode: boolean = false;
 let possibleMoves = new Set();
 
 // ################################
@@ -131,7 +132,7 @@ function drawTileFromMap(tile: Tile) {
     PLAYER_TILE_COLORS[room.state.players.get(tile.ownerId)?.playerNumber] ||
     NEUTRAL_TILE_COLORS;
   const fillColor =
-    (src || selectedUnitType) && !possibleMoves.has(tile) ? shadedColor : color;
+    (src || purchaseMode) && !possibleMoves.has(tile) ? shadedColor : color;
   drawHexagon(x, y, TILE_BORDER, fillColor);
 }
 
@@ -278,6 +279,10 @@ function renderHUD() {
 
   if (room.state.gameStarted && isPlayersTurn() && selectedProvince) {
     purchaseButton.style.display = "inline-block";
+    if (!purchaseMode) {
+      purchaseButton.textContent = "Purchase";
+      unitMenu.classList.add("hidden");
+    }
     if (selectedUnitType) {
       unitForPurchase.classList.remove("hidden");
       unitForPurchase.src = TextureMap[selectedUnitType].src;
@@ -364,7 +369,7 @@ function canvasClicked(event: MouseEvent) {
       room.send("move", [src.coord, tile.coord]);
     }
     src = null;
-  } else if (selectedUnitType) {
+  } else if (purchaseMode && selectedUnitType) {
     // TODO: highlight valid purchased
     if (tile) {
       room.send("purchase", [
@@ -373,9 +378,13 @@ function canvasClicked(event: MouseEvent) {
         selectedUnitType,
       ]);
     }
-    selectedUnitType = UnitType.None;
+    // TODO: update possibleMoves after purchase
+    if (!possibleMoves.has(tile)) {
+      purchaseMode = false;
+    }
   } else if (tile && tile.ownerId === thisPlayer.playerId) {
     selectedProvince = thisPlayer.provinces.get(tile.provinceName);
+    purchaseMode = false;
     selectedUnitType = UnitType.None;
     if (unit && unit.moveRange > 0) {
       src = tile;
@@ -384,7 +393,7 @@ function canvasClicked(event: MouseEvent) {
   } else {
     src = null;
     selectedProvince = null;
-    selectedUnitType = UnitType.None;
+    purchaseMode = false;
   }
   render();
 }
@@ -414,7 +423,16 @@ endTurnButton.addEventListener("click", () => {
 });
 purchaseButton.addEventListener("click", () => {
   if (selectedProvince) {
-    unitMenu.classList.toggle("hidden");
+    if (!purchaseMode) {
+      purchaseMode = true;
+    }
+    if (unitMenu.classList.contains("hidden")) {
+      unitMenu.classList.remove("hidden");
+      purchaseButton.textContent = "Hide Units";
+    } else {
+      unitMenu.classList.add("hidden");
+      purchaseButton.textContent = "Show Units";
+    }
   }
 });
 unitForPurchase.addEventListener("click", () => {
@@ -467,9 +485,8 @@ function createPlayerItem(player: Player) {
   const playerItem = document.createElement("div");
   playerItem.innerHTML = `
     <div class="player-item">
-      <div class="player-color" style="background-color: ${
-        PLAYER_TILE_COLORS[player.playerNumber][0]
-      };"> </div>
+      <div class="player-color" style="background-color: ${PLAYER_TILE_COLORS[player.playerNumber][0]
+    };"> </div>
       <div ${isThisPlayer ? 'id="this-player-name" ' : ""}>${player.name}</div>
     </div>
   `;
