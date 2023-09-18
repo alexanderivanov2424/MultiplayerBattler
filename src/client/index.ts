@@ -37,6 +37,9 @@ const PLAYER_TILE_COLORS = [
   ["#ff6060", "#cc4040"],
   ["#6060ff", "#4040cc"],
   ["#60ff60", "#40cc40"],
+  ["#ffff60", "#cccc40"],
+  ["#60ffff", "#40cccc"],
+  ["#ff60ff", "#cc40cc"],
 ];
 
 const IMG_SOLDIER1 = document.getElementById("soldier1") as HTMLImageElement;
@@ -127,7 +130,8 @@ function drawTileFromMap(tile: Tile) {
   const [color, shadedColor] =
     PLAYER_TILE_COLORS[room.state.players.get(tile.ownerId)?.playerNumber] ||
     NEUTRAL_TILE_COLORS;
-  const fillColor = (src || selectedUnitType) && !possibleMoves.has(tile) ? shadedColor : color;
+  const fillColor =
+    (src || selectedUnitType) && !possibleMoves.has(tile) ? shadedColor : color;
   drawHexagon(x, y, TILE_BORDER, fillColor);
 }
 
@@ -275,13 +279,37 @@ function renderHUD() {
   if (room.state.gameStarted && isPlayersTurn() && selectedProvince) {
     purchaseButton.style.display = "inline-block";
     if (selectedUnitType) {
-      purchaseButton.style.backgroundImage = "url(" + TextureMap[selectedUnitType].src + ")";
+      unitForPurchase.classList.remove("hidden");
+      unitForPurchase.src = TextureMap[selectedUnitType].src;
     } else {
-      purchaseButton.style.backgroundImage = null;
+      unitForPurchase.classList.add("hidden");
+    }
+    for (let i = 0; i < unitMenu.children.length; i++) {
+      const unitMenuItem = unitMenu.children.item(i) as HTMLElement;
+      if (i === selectedUnitType - 1) {
+        unitMenuItem.style.border =
+          "5px solid " + PLAYER_TILE_COLORS[thisPlayer.playerNumber][0];
+      } else {
+        unitMenuItem.style.border = "none";
+      }
     }
   } else {
     purchaseButton.style.display = "none";
+    unitMenu.classList.add("hidden");
+    unitForPurchase.classList.add("hidden");
   }
+
+  // Funds
+  if (room.state.gameStarted && selectedProvince) {
+    fundsDiv.style.display = "block";
+    //TODO render negative correctly
+    incomeSpan.textContent = `$${selectedProvince.income} |`;
+    moneySpan.textContent = `$${selectedProvince.money}`;
+  } else {
+    fundsDiv.style.display = "none";
+  }
+
+  renderPlayerList();
 }
 
 function render() {
@@ -318,6 +346,7 @@ function axialRound([q, r]: AxialCoords): AxialCoords {
 }
 
 function canvasClicked(event: MouseEvent) {
+  UpdateServerWithPlayerName();
   if (!isPlayersTurn()) {
     return;
   }
@@ -367,6 +396,16 @@ function isPlayersTurn() {
 const readyButton = document.getElementById("ready") as HTMLButtonElement;
 const endTurnButton = document.getElementById("end-turn") as HTMLButtonElement;
 const purchaseButton = document.getElementById("purchase") as HTMLButtonElement;
+const unitForPurchase = document.getElementById(
+  "unit-for-purchase-img"
+) as HTMLImageElement;
+const playerList = document.getElementById("player-list") as HTMLDivElement;
+const fundsDiv = document.getElementById("funds") as HTMLDivElement;
+const incomeSpan = document.getElementById("income") as HTMLSpanElement;
+const moneySpan = document.getElementById("money") as HTMLSpanElement;
+
+const unitMenu = document.getElementsByClassName("unit-menu")[0];
+
 readyButton.addEventListener("click", () => room.send("readyToStart"));
 endTurnButton.addEventListener("click", () => {
   if (!src) {
@@ -375,27 +414,102 @@ endTurnButton.addEventListener("click", () => {
 });
 purchaseButton.addEventListener("click", () => {
   if (selectedProvince) {
-    src = null;
-    if (selectedUnitType !== UnitType.Tower3) {
-      selectedUnitType++;
-    } else {
-      selectedUnitType = UnitType.None;
-      possibleMoves.clear();
-      renderHUD();
-      renderCanvas();
-      return;
-    }
-    possibleMoves = selectedProvince.tiles.tileSet();
-    for (const [tile, [shift_q, shift_r]] of getProvincePerimiter(selectedProvince.tiles)) {
-      const neighborTile = room.state.tiles.get([tile.coord[0] + shift_q, tile.coord[1] + shift_r]);
-      if (neighborTile && utils.isValidMove(room.state.tiles, thisPlayer.playerId, getUnitData(selectedUnitType), neighborTile)) {
-        possibleMoves.add(neighborTile);
-      }
-    }
-    renderHUD();
-    renderCanvas();
+    unitMenu.classList.toggle("hidden");
   }
 });
+unitForPurchase.addEventListener("click", () => {
+  selectedUnitType = UnitType.None;
+});
+function getUnitMenuItemClickedCallback(unitType: UnitType) {
+  return () => {
+    if (selectedProvince) {
+      selectedUnitType = unitType;
+
+      src = null;
+      possibleMoves = selectedProvince.tiles.tileSet();
+      for (const [tile, [shift_q, shift_r]] of getProvincePerimiter(
+        selectedProvince.tiles
+      )) {
+        const neighborTile = room.state.tiles.get([
+          tile.coord[0] + shift_q,
+          tile.coord[1] + shift_r,
+        ]);
+        if (
+          neighborTile &&
+          utils.isValidMove(
+            room.state.tiles,
+            thisPlayer.playerId,
+            getUnitData(selectedUnitType),
+            neighborTile
+          )
+        ) {
+          possibleMoves.add(neighborTile);
+        }
+      }
+      renderHUD();
+      renderCanvas();
+    }
+  };
+}
+
+function renderPlayerList() {
+  while (playerList.firstChild) {
+    playerList.removeChild(playerList.firstChild);
+  }
+
+  for (const [_, player] of room.state.players) {
+    createPlayerItem(player);
+  }
+}
+
+function createPlayerItem(player: Player) {
+  const isThisPlayer = player === thisPlayer;
+  const playerItem = document.createElement("div");
+  playerItem.innerHTML = `
+    <div class="player-item">
+      <div class="player-color" style="background-color: ${
+        PLAYER_TILE_COLORS[player.playerNumber][0]
+      };"> </div>
+      <div ${isThisPlayer ? 'id="this-player-name" ' : ""}>${player.name}</div>
+    </div>
+  `;
+
+  playerList.appendChild(playerItem);
+
+  if (isThisPlayer) {
+    const playerName = document.getElementById("this-player-name");
+    playerName.contentEditable = "true";
+    playerName.classList.add("contenteditable");
+    playerName.addEventListener("click", () => {
+      playerName.focus();
+    });
+  }
+}
+
+function UpdateServerWithPlayerName() {
+  let newName = document.getElementById("this-player-name").innerText;
+  if (thisPlayer.name !== newName) {
+    room.send("updateName", newName);
+  }
+  (document.activeElement as HTMLInputElement).blur();
+}
+
+for (const unitType of Board.PurchasableUnits) {
+  const unitMenuItem = document.createElement("div");
+  unitMenuItem.classList.add("unit-menu-item");
+  unitMenuItem.id = "unit-menu-item-" + unitType;
+  const unitImg = document.createElement("img");
+  unitImg.src = TextureMap[unitType].src;
+  unitMenuItem.appendChild(unitImg);
+  const unitCost = document.createElement("div");
+  unitCost.textContent = "$" + getUnitData(unitType).cost;
+  unitMenuItem.appendChild(unitCost);
+  unitMenuItem.addEventListener(
+    "click",
+    getUnitMenuItemClickedCallback(unitType)
+  );
+  unitMenu.appendChild(unitMenuItem);
+}
 
 console.log("creating client");
 const client = new Client(`ws://${window.location.host}`);
@@ -425,46 +539,3 @@ window.localStorage.setItem("reconnectionToken", room.reconnectionToken);
 room.onStateChange(() => {
   render();
 });
-
-/*
-All image sources: https://github.com/yiotro/Antiyoy/tree/master/assets/field_elements
-
-- Gameplay:
-  - debug provinces having wrong income, and split provinces getting wrong money
-  - click on tower -> show shields (client side only)
-  - combining units
-  - killing provinces with no money
-
-  - buying units
-  - render provinces
-    - draw an outline
-  - clickable provinces
-
-  - world generation
-    - single continent (merge blobs)
-  - tree spreading
-
-- Optimization:
-  - separate canvas for rendering tiles, units, highlight, shading ...
-
-
-- Player HUD:
-  - display player name and color in top left
-  - display all players in top left (durring start up too)
-  - income, money, provinces
-  - display province names
-  - purchase buttons for units
-
-- house keeping
-  - tiles should have a unit in them
-  - tiles should know their coordinate (but not replicate it)
-    - makes neighboring / adjancency cleaner
-  - make provinces id-able across all players (use unique ids for provinces)
-  - delete 1 tile provinces and handle correctly in merging
-  - use schema types on client side:
-    - e.g. not replicating unitName (use polymorphism / check instanceof)
-  - hex coord / tilecoord conversions??? Make less ugly
-  - pull out rendering functions
-  - pull out game logic from schema classes
-
-*/

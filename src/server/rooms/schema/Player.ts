@@ -1,5 +1,6 @@
 import { Schema, MapSchema, type } from "@colyseus/schema";
 import { Province } from "./Province";
+import { PLAYER_NAMES_FIRST, PLAYER_NAMES_LAST } from "./NameConstants";
 
 export class Player extends Schema {
   @type("string") playerId: string;
@@ -12,10 +13,14 @@ export class Player extends Schema {
   nextProvinceNumber: number = 0;
 
   static create(playerId: string, playerNumber: number) {
+    const first =
+      PLAYER_NAMES_FIRST[Math.floor(Math.random() * PLAYER_NAMES_FIRST.length)];
+    const last =
+      PLAYER_NAMES_LAST[Math.floor(Math.random() * PLAYER_NAMES_LAST.length)];
     return new Player().assign({
       playerId,
       playerNumber,
-      name: playerId,
+      name: first + " " + last,
     });
   }
 

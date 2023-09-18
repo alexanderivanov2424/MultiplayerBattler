@@ -25,6 +25,16 @@ export class Board extends Schema {
   @type("boolean") gameStarted = false;
   @type("number") currentPlayerNumber = 0;
 
+  static PurchasableUnits = [
+    UnitType.Soldier1,
+    UnitType.Soldier2,
+    UnitType.Soldier3,
+    UnitType.Soldier4,
+    UnitType.Farm,
+    UnitType.Tower2,
+    UnitType.Tower3,
+  ];
+
   _tileMap = new TileMap(this._tiles);
   get tiles() {
     this._tileMap.map = this._tiles;

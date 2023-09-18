@@ -1,85 +1,161 @@
 <!DOCTYPE html>
 <html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>HexGrid</title>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+      }
 
-<head>
-  <meta charset="UTF-8" />
-  <title>HexGrid</title>
-  <style>
-    * {
-      margin: 0;
-      padding: 0;
-    }
+      .test {
+        display: flex;
+        justify-content: space-between;
+      }
 
-    .test {
-      display: flex;
-      justify-content: space-between;
-    }
+      .canvas {
+        border: 1px solid #000000;
+      }
 
-    .canvas {
-      border: 1px solid #000000;
-    }
+      html,
+      body,
+      #viewport {
+        width: 100vw;
+        height: 100vh;
+        overflow: hidden;
+      }
 
-    html,
-    body,
-    #viewport {
-      width: 100vw;
-      height: 100vh;
-      overflow: hidden;
-    }
+      #viewport {
+        position: relative;
+      }
 
-    #viewport {
-      position: relative;
-    }
+      #ready {
+        width: 100px;
+        height: 50px;
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+      }
 
-    #ready {
-      width: 100px;
-      height: 50px;
-      position: absolute;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%);
-    }
+      #end-turn {
+        width: 100px;
+        height: 50px;
+        position: absolute;
+        bottom: 1em;
+        right: 1em;
+      }
 
-    #end-turn {
-      width: 100px;
-      height: 50px;
-      position: absolute;
-      bottom: 1em;
-      right: 1em;
-    }
+      #purchase {
+        width: 100px;
+        height: 50px;
+        background-size: contain;
+        background-repeat: no-repeat;
+      }
 
-    #purchase {
-      width: 100px;
-      height: 50px;
-      position: absolute;
-      bottom: 1em;
-      left: 1em;
-      background-size: contain;
-      background-repeat: no-repeat;
-    }
-  </style>
-  <script src="https://unpkg.com/colyseus.js@^0.15.0/dist/colyseus.js"></script>
-  <script src="https://unpkg.com/@panzoom/panzoom@4.5.1/dist/panzoom.min.js"></script>
-  <script type="module" src="./dist/index.js"></script>
-</head>
+      #purchase-column {
+        width: 150px;
+        position: absolute;
+        bottom: 1em;
+        left: 1em;
+        background-size: contain;
+        background-repeat: no-repeat;
+        display: flex;
+        flex-direction: column-reverse;
+        /* flex-wrap: wrap-reverse; */
+      }
 
-<body>
-  <div id="viewport">
-    <canvas id="canvas" width="2000" height="2000" class="canvas"></canvas>
-    <button id="ready">Ready to Start!</button>
-    <button id="end-turn" style="display: none">End Turn</button>
-    <button id="purchase" style="display: none">Purchase</button>
-  </div>
-  <div style="display: none">
-    <img id="soldier1" src="images/soldier1.png" width="100" height="100" />
-    <img id="soldier2" src="images/soldier2.png" width="100" height="100" />
-    <img id="soldier3" src="images/soldier3.png" width="100" height="100" />
-    <img id="soldier4" src="images/soldier4.png" width="100" height="100" />
-    <img id="farm" src="images/farm.png" width="100" height="100" />
-    <img id="tower2" src="images/tower2.png" width="100" height="100" />
-    <img id="tower3" src="images/tower3.png" width="100" height="100" />
-    <img id="pine" src="images/pine.png" width="100" height="100" />
-  </div>
-</body>
+      #purchase-button-box {
+        display: flex;
+      }
 
+      #unit-for-purchase-img {
+        width: 50px;
+        height: 50px;
+      }
+
+      .unit-menu {
+        width: 100px;
+        display: flex;
+        flex-direction: column-reverse;
+        align-items: center;
+      }
+
+      .unit-menu-item {
+        display: flex;
+        align-items: center;
+        width: 100px;
+        font-size: 16px;
+      }
+
+      .unit-menu-item img {
+        width: 50px;
+        height: 50px;
+      }
+
+      #funds {
+        width: 200px;
+        height: 50px;
+        position: absolute;
+        top: 1em;
+        left: 50%;
+        transform: translate(-50%, 0);
+      }
+
+      #player-list {
+        width: 300px;
+        position: absolute;
+        top: 1em;
+        left: 1em;
+      }
+
+      .player-item {
+        display: flex;
+        align-items: center;
+      }
+
+      .player-color {
+        width: 50px;
+        height: 50px;
+        border-radius: 50%;
+      }
+
+      .hidden {
+        display: none;
+      }
+    </style>
+    <script src="https://unpkg.com/colyseus.js@^0.15.0/dist/colyseus.js"></script>
+    <script src="https://unpkg.com/@panzoom/panzoom@4.5.1/dist/panzoom.min.js"></script>
+    <script type="module" src="./dist/index.js"></script>
+  </head>
+
+  <body>
+    <div id="viewport">
+      <canvas id="canvas" width="2000" height="2000" class="canvas"></canvas>
+      <button id="ready">Ready to Start!</button>
+      <button id="end-turn" style="display: none">End Turn</button>
+      <div id="player-list"></div>
+      <div id="funds">
+        Income: <span id="income">0</span> Money: <span id="money">0</span>
+      </div>
+      <div id="purchase-column">
+        <div id="purchase-button-box">
+          <button id="purchase" style="display: none">Purchase</button>
+          <img id="unit-for-purchase-img" src="" />
+        </div>
+        <div class="unit-menu hidden"></div>
+      </div>
+    </div>
+    <div style="display: none">
+      <img id="soldier1" src="images/soldier1.png" width="100" height="100" />
+      <img id="soldier2" src="images/soldier2.png" width="100" height="100" />
+      <img id="soldier3" src="images/soldier3.png" width="100" height="100" />
+      <img id="soldier4" src="images/soldier4.png" width="100" height="100" />
+      <img id="farm" src="images/farm.png" width="100" height="100" />
+      <img id="tower2" src="images/tower2.png" width="100" height="100" />
+      <img id="tower3" src="images/tower3.png" width="100" height="100" />
+      <img id="pine" src="images/pine.png" width="100" height="100" />
+    </div>
+  </body>
 </html>
