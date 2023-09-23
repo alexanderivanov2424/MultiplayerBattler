@@ -313,8 +313,6 @@ function renderHUD() {
   } else {
     fundsDiv.style.display = "none";
   }
-
-  renderPlayerList();
 }
 
 function render() {
@@ -470,37 +468,30 @@ function getUnitMenuItemClickedCallback(unitType: UnitType) {
   };
 }
 
-function renderPlayerList() {
-  while (playerList.firstChild) {
-    playerList.removeChild(playerList.firstChild);
-  }
-
-  for (const [_, player] of room.state.players) {
-    createPlayerItem(player);
-  }
-}
-
 function createPlayerItem(player: Player) {
-  const isThisPlayer = player === thisPlayer;
   const playerItem = document.createElement("div");
-  playerItem.innerHTML = `
-    <div class="player-item">
-      <div class="player-color" style="background-color: ${PLAYER_TILE_COLORS[player.playerNumber][0]
-    };"> </div>
-      <div ${isThisPlayer ? 'id="this-player-name" ' : ""}>${player.name}</div>
-    </div>
-  `;
+  playerItem.className = "player-item";
 
-  playerList.appendChild(playerItem);
+  const playerColor = document.createElement("div");
+  playerColor.className = "player-color";
+  playerColor.style.backgroundColor =
+    PLAYER_TILE_COLORS[player.playerNumber][0];
 
-  if (isThisPlayer) {
-    const playerName = document.getElementById("this-player-name");
+  const playerName = document.createElement("div");
+  playerName.textContent = player.name;
+  playerName.className = "panzoom-exclude";
+  if (player.playerId === room.sessionId) {
+    playerName.id = "this-player-name";
     playerName.contentEditable = "true";
-    playerName.classList.add("contenteditable");
-    playerName.addEventListener("click", () => {
-      playerName.focus();
+  } else {
+    player.listen("name", (newName) => {
+      playerName.textContent = newName;
     });
   }
+
+  playerItem.appendChild(playerColor);
+  playerItem.appendChild(playerName);
+  playerList.appendChild(playerItem);
 }
 
 function UpdateServerWithPlayerName() {
@@ -513,13 +504,16 @@ function UpdateServerWithPlayerName() {
 
 for (const unitType of Board.PurchasableUnits) {
   const unitMenuItem = document.createElement("div");
-  unitMenuItem.classList.add("unit-menu-item");
+  unitMenuItem.className = "unit-menu-item";
   unitMenuItem.id = "unit-menu-item-" + unitType;
+
   const unitImg = document.createElement("img");
   unitImg.src = TextureMap[unitType].src;
-  unitMenuItem.appendChild(unitImg);
+
   const unitCost = document.createElement("div");
   unitCost.textContent = "$" + getUnitData(unitType).cost;
+
+  unitMenuItem.appendChild(unitImg);
   unitMenuItem.appendChild(unitCost);
   unitMenuItem.addEventListener(
     "click",
@@ -552,6 +546,10 @@ if (!joinedRoom) {
   console.log("joined successfully", room);
 }
 window.localStorage.setItem("reconnectionToken", room.reconnectionToken);
+
+room.state.players.onAdd((player) => {
+  createPlayerItem(player);
+});
 
 room.onStateChange(() => {
   render();
