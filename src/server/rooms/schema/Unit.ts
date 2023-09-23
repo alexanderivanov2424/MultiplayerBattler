@@ -10,7 +10,7 @@ export enum UnitType {
   Castle,
   Grave,
   Pine,
-  Palm
+  Palm,
 }
 
 export function isSoldier(unitType: UnitType) {
@@ -130,7 +130,7 @@ const UNIT_DATA_MAP: Record<UnitType, Unit> = {
   [UnitType.Castle]: Castle,
   [UnitType.Grave]: Grave,
   [UnitType.Pine]: Pine,
-  [UnitType.Palm]: Palm
+  [UnitType.Palm]: Palm,
 };
 
 export function getUnitData(unitType: UnitType) {

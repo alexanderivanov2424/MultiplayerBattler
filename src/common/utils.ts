@@ -49,7 +49,12 @@ function getMovesInRange(tiles: TileMap, src: Tile) {
   return tilesInMoveRange;
 }
 
-export function isValidMove(tiles: TileMap, playerId: string, unit: Unit, dest: Tile) {
+export function isValidMove(
+  tiles: TileMap,
+  playerId: string,
+  unit: Unit,
+  dest: Tile
+) {
   if (dest.ownerId === playerId) {
     //TODO combine units
     return true;
